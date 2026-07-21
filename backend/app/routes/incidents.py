@@ -1,12 +1,15 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, jsonify, request, send_file
+from flask_jwt_extended import get_jwt, jwt_required
+from io import BytesIO
 from sqlalchemy import func
 
 from app import db
 from app.models import AuditLog, Incident, IOC, Vulnerability
+from app.services.incident_report_data import build_report_context
+from app.services.pdf_report import generate_incident_pdf
 
 incidents_bp = Blueprint("incidents", __name__)
 
@@ -89,3 +92,31 @@ def dashboard_stats():
             "audit_feed": [log.to_dict() for log in audit_logs],
         }
     ), 200
+
+
+@incidents_bp.route("/<int:incident_id>", methods=["GET"])
+@jwt_required()
+def get_incident(incident_id):
+    incident = Incident.query.get_or_404(incident_id)
+    return jsonify(incident.to_dict()), 200
+
+
+@incidents_bp.route("/<int:incident_id>/report/pdf", methods=["GET"])
+@jwt_required()
+def export_incident_pdf(incident_id):
+    incident = Incident.query.get_or_404(incident_id)
+    claims = get_jwt()
+    analyst_username = claims.get("username", "analista")
+
+    context = build_report_context(incident, analyst_username)
+    context["generated_at"] = datetime.now(timezone.utc)
+
+    pdf_bytes = generate_incident_pdf(context)
+    filename = f"Reporte_Incidente_{incident_id}.pdf"
+
+    return send_file(
+        BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )

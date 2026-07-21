@@ -12,6 +12,7 @@
 | [Diagramas UML](diagramas-uml.md) | Diagramas de casos de uso, clases, secuencia, componentes, despliegue, actividad y ERD | Arquitectos, desarrolladores |
 | [Integración en red](integracion-red.md) | Conectar Splunk, QRadar, firewall y EDR | SOC, DevSecOps, administradores |
 | [Diccionario de términos](diccionario.md) | Glosario SOC, técnico y de productos | Todos |
+| [Ejemplos prácticos y casos de prueba](ejemplos-practicos.md) | Escenarios SOC ejecutables y matriz TC-01–TC-15 | Formación, QA |
 
 ## Acceso rápido
 

@@ -1,5 +1,7 @@
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { FileDown, X } from 'lucide-react';
 import type { Incident, IOC, Vulnerability } from '../types';
+import { downloadIncidentReport } from '../services/incidents';
 
 export type KpiType = 'active_alerts' | 'blocked_ips' | 'kev_vulnerabilities' | 'total_incidents';
 
@@ -29,8 +31,19 @@ export default function KpiDetailModal({
   vulnerabilities,
   onClose,
 }: KpiDetailModalProps) {
+  const [exportingId, setExportingId] = useState<number | null>(null);
+
   const count =
     incidents?.length ?? iocs?.length ?? vulnerabilities?.length ?? 0;
+
+  const handleExportPdf = async (incidentId: number) => {
+    setExportingId(incidentId);
+    try {
+      await downloadIncidentReport(incidentId);
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   return (
     <div
@@ -74,7 +87,8 @@ export default function KpiDetailModal({
                       <th className="pb-3 pr-4">Severidad</th>
                       <th className="pb-3 pr-4">Estado</th>
                       <th className="pb-3 pr-4">Origen</th>
-                      <th className="pb-3">Asignado</th>
+                      <th className="pb-3 pr-4">Asignado</th>
+                      <th className="pb-3">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -86,7 +100,18 @@ export default function KpiDetailModal({
                         </td>
                         <td className="py-3 pr-4 text-slate-300 capitalize">{inc.status}</td>
                         <td className="py-3 pr-4 text-slate-400">{inc.source}</td>
-                        <td className="py-3 text-slate-400">{inc.assigned_to || '—'}</td>
+                        <td className="py-3 pr-4 text-slate-400">{inc.assigned_to || '—'}</td>
+                        <td className="py-3">
+                          <button
+                            type="button"
+                            onClick={() => handleExportPdf(inc.id)}
+                            disabled={exportingId === inc.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 disabled:opacity-50 transition-colors"
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                            {exportingId === inc.id ? 'Generando...' : 'Exportar PDF'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

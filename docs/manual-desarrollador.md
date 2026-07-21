@@ -160,8 +160,10 @@ POST /api/auth/register       [JWT admin] { username, email, password, role? }
 ### Incidentes
 
 ```
-GET /api/incidents            [JWT]
-GET /api/incidents/stats      [JWT] → KPIs + gráficos + audit feed
+GET /api/incidents                      [JWT] ?status=active
+GET /api/incidents/<id>                 [JWT]
+GET /api/incidents/stats                [JWT] → KPIs + gráficos + audit feed
+GET /api/incidents/<id>/report/pdf      [JWT] → Informe PDF ejecutivo
 ```
 
 ### IOCs

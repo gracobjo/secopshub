@@ -88,6 +88,10 @@ Vista general del estado de seguridad de la organización.
 
 Lista las últimas acciones realizadas por usuarios del sistema (enriquecimiento de IOCs, ejecución de playbooks, cambios de incidentes, etc.).
 
+### Detalle de KPIs e informes PDF
+
+Al pulsar cualquier KPI (Alertas activas, IPs bloqueadas, etc.) se abre un modal con el listado detallado. En incidentes, el botón **Exportar PDF** genera un informe ejecutivo descargable (`Reporte_Incidente_<ID>.pdf`) con resumen, cronología, IOCs y medidas de contención.
+
 ---
 
 ## 6. Triaje de IOCs
