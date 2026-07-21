@@ -10,6 +10,19 @@ Plataforma web full-stack de operaciones de ciberseguridad con autenticación JW
 | Frontend | React 18, Vite, TypeScript, Tailwind CSS, Recharts |
 | Seguridad | JWT Bearer tokens, roles Admin/Analyst, API Key para webhooks |
 
+## Arquitectura de red
+
+![Flujo de red corporativa](docs/flujo_red_secops_hub.svg)
+
+Cuatro direcciones de comunicación dentro de la red corporativa:
+
+- **SIEM → SecOps Hub** — ingesta de alertas por webhook (`X-API-Key`)
+- **Analistas ↔ SecOps Hub** — consola web vía JWT (VLAN analistas / VPN)
+- **SecOps Hub → EDR** — playbooks de contención (Defender, CrowdStrike)
+- **SecOps Hub → Firewall** — bloqueo de IPs (Palo Alto, pfSense)
+
+Ver [Integración en red](docs/integracion-red.md) para despliegue paso a paso.
+
 ## Estructura
 
 ```

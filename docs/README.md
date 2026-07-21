@@ -11,6 +11,7 @@
 | [Casos de uso](casos-de-uso.md) | Casos de uso, flujos e implementación | Analistas, desarrolladores |
 | [Diagramas UML](diagramas-uml.md) | Diagramas de casos de uso, clases, secuencia, componentes, despliegue, actividad y ERD | Arquitectos, desarrolladores |
 | [Integración en red](integracion-red.md) | Conectar Splunk, QRadar, firewall y EDR | SOC, DevSecOps, administradores |
+| [Diagrama flujo de red](flujo_red_secops_hub.svg) | Cuatro direcciones de comunicación en red corporativa | Arquitectos, SOC |
 | [Diccionario de términos](diccionario.md) | Glosario SOC, técnico y de productos | Todos |
 | [Ejemplos prácticos y casos de prueba](ejemplos-practicos.md) | Escenarios SOC ejecutables y matriz TC-01–TC-15 | Formación, QA |
 

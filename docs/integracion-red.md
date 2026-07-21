@@ -10,6 +10,19 @@ Guía paso a paso para conectar SecOps Hub con sistemas reales de una red corpor
 
 SecOps Hub actúa como **consola central de operaciones**. No sustituye al SIEM ni al EDR, sino que **recibe alertas**, permite **triaje manual/automático** y **orquesta respuestas** mediante playbooks.
 
+![Flujo de red SecOps Hub](flujo_red_secops_hub.svg)
+
+### Cuatro direcciones de comunicación
+
+| # | Dirección | Mecanismo | Autenticación |
+|---|-----------|-----------|---------------|
+| ① | **SIEM → SecOps Hub** | Webhook `POST /api/webhooks/alert` | Header `X-API-Key` |
+| ② | **Analistas ↔ SecOps Hub** | Consola React + API REST | JWT Bearer (HTTPS) |
+| ③ | **SecOps Hub → EDR** | Playbooks de contención | API EDR (simulado en demo) |
+| ④ | **SecOps Hub → Firewall** | Bloqueo IP / deny list | API firewall (simulado en demo) |
+
+SecOps Hub permanece **dentro de la red corporativa**, accesible desde el SIEM y desde analistas autorizados (VLAN SOC o VPN). **No debe exponerse directamente a Internet.**
+
 ```
                     ┌─────────────────────────────────────────┐
                     │           RED CORPORATIVA               │
