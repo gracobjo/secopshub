@@ -14,7 +14,13 @@ iocs_bp = Blueprint("iocs", __name__)
 @jwt_required()
 @analyst_or_admin_required
 def list_iocs():
-    iocs = IOC.query.order_by(IOC.created_at.desc()).all()
+    blocked = request.args.get("blocked")
+    query = IOC.query
+
+    if blocked is not None:
+        query = query.filter_by(blocked=blocked.lower() == "true")
+
+    iocs = query.order_by(IOC.created_at.desc()).all()
     return jsonify([ioc.to_dict() for ioc in iocs]), 200
 
 

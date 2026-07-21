@@ -10,12 +10,15 @@ vulns_bp = Blueprint("vulnerabilities", __name__)
 @jwt_required()
 def list_vulnerabilities():
     severity = request.args.get("severity")
+    status = request.args.get("status")
     kev_only = request.args.get("kev_only", "false").lower() == "true"
 
     query = Vulnerability.query
 
     if severity:
         query = query.filter_by(severity=severity)
+    if status:
+        query = query.filter_by(status=status)
     if kev_only:
         query = query.filter_by(is_kev=True)
 

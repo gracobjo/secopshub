@@ -213,11 +213,16 @@ Las alertas recibidas se registran como nuevos incidentes en el dashboard.
 
 ## 11. Glosario
 
-| Término | Definición |
-|---------|------------|
+Consulta el **[Diccionario completo de términos](diccionario.md)** (80+ entradas con ejemplos).
+
+| Término | Definición breve |
+|---------|------------------|
 | **IOC** | Indicador de compromiso (IP, hash, URL maliciosa) |
 | **KEV** | Known Exploited Vulnerabilities — catálogo CISA de CVEs explotados activamente |
 | **Playbook** | Secuencia automatizada de respuesta a incidentes |
 | **SOC** | Security Operations Center — centro de operaciones de seguridad |
 | **JWT** | JSON Web Token — credencial de sesión tras el login |
 | **RBAC** | Control de acceso basado en roles (admin / analyst) |
+| **SIEM** | Plataforma que centraliza logs y genera alertas (Splunk, QRadar) |
+| **EDR** | Detección y respuesta en endpoints (Defender, CrowdStrike) |
+| **Webhook** | Notificación HTTP automática entre sistemas (SIEM → SecOps Hub) |

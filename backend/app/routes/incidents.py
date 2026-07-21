@@ -1,7 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from sqlalchemy import func
 
@@ -14,7 +14,15 @@ incidents_bp = Blueprint("incidents", __name__)
 @incidents_bp.route("", methods=["GET"])
 @jwt_required()
 def list_incidents():
-    incidents = Incident.query.order_by(Incident.created_at.desc()).all()
+    status = request.args.get("status")
+    query = Incident.query
+
+    if status == "active":
+        query = query.filter(Incident.status.in_(["open", "investigating"]))
+    elif status:
+        query = query.filter_by(status=status)
+
+    incidents = query.order_by(Incident.created_at.desc()).all()
     return jsonify([i.to_dict() for i in incidents]), 200
 
 

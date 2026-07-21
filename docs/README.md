@@ -10,6 +10,8 @@
 | [Requisitos](requisitos.md) | Requisitos funcionales y no funcionales | Producto, QA, desarrollo |
 | [Casos de uso](casos-de-uso.md) | Casos de uso, flujos e implementación | Analistas, desarrolladores |
 | [Diagramas UML](diagramas-uml.md) | Diagramas de casos de uso, clases, secuencia, componentes, despliegue, actividad y ERD | Arquitectos, desarrolladores |
+| [Integración en red](integracion-red.md) | Conectar Splunk, QRadar, firewall y EDR | SOC, DevSecOps, administradores |
+| [Diccionario de términos](diccionario.md) | Glosario SOC, técnico y de productos | Todos |
 
 ## Acceso rápido
 

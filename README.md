@@ -111,7 +111,9 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | [Manual de desarrollador](docs/manual-desarrollador.md) | Arquitectura, API y despliegue |
 | [Requisitos](docs/requisitos.md) | RF/RNF y trazabilidad |
 | [Casos de uso](docs/casos-de-uso.md) | CU-01 a CU-10 con implementación |
-| [Diagramas UML](docs/diagramas-uml.md) | Casos de uso, clases, secuencia, componentes, despliegue, actividad, ERD |
+| [Diagramas UML](docs/diagramas-uml.md) | Casos de uso, clases, secuencia, componentes, despliegue, ERD |
+| [Integración en red](docs/integracion-red.md) | Splunk, QRadar, firewall, EDR |
+| [Diccionario de términos](docs/diccionario.md) | Glosario SOC y técnico con ejemplos |
 
 ## Licencia
 
