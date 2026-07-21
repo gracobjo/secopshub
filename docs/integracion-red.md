@@ -506,7 +506,7 @@ T+25     Auditor            Revisa feed de auditoría         Dashboard
 | RBAC | admin vs analyst en playbooks |
 | TLS | HTTPS obligatorio en producción |
 | Red | SecOps Hub en VLAN SOC; SIEM en misma VLAN o DMZ |
-| Rate limiting | Recomendado en Nginx (no implementado aún) |
+| Rate limiting | Incluido en `deploy/nginx/secops-hub.conf` y `deploy/caddy/Caddyfile` |
 | Validación payload | severity whitelist; sanitizar title/description |
 | Auditoría | Todas las acciones en `audit_logs` |
 | Secrets | Nunca en código; solo `.env` o vault |
@@ -525,34 +525,45 @@ Permitir:  SecOps Hub (10.0.2.50) → Firewall API (443)
 
 ## 10. Plan de implementación por fases
 
-### Fase 1 — Ingesta (1–2 semanas) ✅ parcialmente listo
+Ver detalle completo en [roadmap-integracion.md](roadmap-integracion.md).
+
+### Fase 1 — Infraestructura básica
+
+- [x] Reverse proxy Nginx/Caddy — [`deploy/`](../deploy/README.md)
+- [x] Gunicorn + `wsgi.py` + systemd
+- [ ] TLS en servidor producción
+- [ ] Claves reales ≥ 32 caracteres
+- [ ] PostgreSQL + backup
+- [ ] Firewall: solo VLAN SOC / VPN → :443
+
+### Fase 2 — Conectar SIEM (ingesta real)
 
 - [x] Webhook `/api/webhooks/alert`
-- [ ] Desplegar SecOps Hub en servidor con HTTPS
-- [ ] Configurar Splunk Alert Action → webhook
-- [ ] Configurar QRadar Rule Response → script
-- [ ] Probar flujo: alerta SIEM → dashboard
+- [ ] Splunk Alert Action → HTTPS
+- [ ] QRadar Rule Response → HTTPS
+- [ ] Prueba E2E alerta real
 
-### Fase 2 — Triaje real (2–3 semanas)
+### Fase 3 — Triaje real ⚙️ scaffolding listo
 
-- [ ] Integrar AbuseIPDB API en `ioc_enrichment.py`
-- [ ] Integrar VirusTotal API
-- [ ] Sincronizar feed CISA KEV automático
-- [ ] Desactivar seed en producción
+- [x] Clientes AbuseIPDB + VirusTotal + fallback simulado
+- [x] `enrichment_mode` en API/UI
+- [ ] API keys en producción
+- [ ] Feed CISA KEV automático
+- [ ] `ENABLE_SEED=false`
 
-### Fase 3 — Respuesta automatizada (3–4 semanas)
+### Fase 4 — Respuesta automatizada ⚙️ scaffolding listo
 
-- [ ] Playbook `block_ip` → API firewall
-- [ ] Playbook `isolate_host` → API EDR
-- [ ] Playbook `revoke_user` → Azure AD / LDAP
-- [ ] Aprobación manual antes de ejecutar (opcional)
+- [x] `playbook_runners.py` (EDR/FW/AD)
+- [x] Playbook `block_ip`
+- [ ] Llamadas HTTP completas a sistemas reales
+- [ ] Aprobación manual pre-ejecución (opcional)
 
-### Fase 4 — Operación continua
+### Fase 5 — Operación continua
 
-- [ ] PostgreSQL en lugar de SQLite
-- [ ] LDAP/SSO para login
-- [ ] Monitorización (Prometheus/Grafana)
-- [ ] Runbooks documentados para analistas
+- [ ] SSO / LDAP
+- [ ] Prometheus + Grafana
+- [x] Rate limiting webhook (Nginx/Caddy en `deploy/`)
+- [ ] Runbooks SOC
 
 ---
 

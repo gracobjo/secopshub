@@ -13,6 +13,11 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    if app.config.get("BEHIND_PROXY") or app.config.get("FLASK_ENV") == "production":
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
     db.init_app(app)
     jwt.init_app(app)
@@ -23,6 +28,7 @@ def create_app(config_class=Config):
     from app.routes.vulns import vulns_bp
     from app.routes.playbooks import playbooks_bp
     from app.routes.webhooks import webhooks_bp
+    from app.routes.integrations import integrations_bp
     from app.routes.frontend import frontend_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -31,12 +37,14 @@ def create_app(config_class=Config):
     app.register_blueprint(vulns_bp, url_prefix="/api/vulnerabilities")
     app.register_blueprint(playbooks_bp, url_prefix="/api/playbooks")
     app.register_blueprint(webhooks_bp, url_prefix="/api/webhooks")
+    app.register_blueprint(integrations_bp, url_prefix="/api/integrations")
     app.register_blueprint(frontend_bp)
 
     with app.app_context():
         db.create_all()
         from app.services.seed import seed_database
 
-        seed_database()
+        if app.config.get("ENABLE_SEED", True):
+            seed_database()
 
     return app

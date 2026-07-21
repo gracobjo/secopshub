@@ -1,0 +1,29 @@
+[Unit]
+Description=SecOps Hub API (Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=notify
+User=secops
+Group=secops
+WorkingDirectory=/opt/secops-hub/backend
+EnvironmentFile=/opt/secops-hub/backend/.env
+ExecStart=/opt/secops-hub/backend/venv/bin/gunicorn \
+    --bind 127.0.0.1:5000 \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile /var/log/secops-hub/access.log \
+    --error-logfile /var/log/secops-hub/error.log \
+    wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+# Hardening básico
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

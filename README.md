@@ -21,14 +21,15 @@ Cuatro direcciones de comunicación dentro de la red corporativa:
 - **SecOps Hub → EDR** — playbooks de contención (Defender, CrowdStrike)
 - **SecOps Hub → Firewall** — bloqueo de IPs (Palo Alto, pfSense)
 
-Ver [Integración en red](docs/integracion-red.md) para despliegue paso a paso.
+Ver [Integración en red](docs/integracion-red.md) para Splunk/QRadar y [Despliegue producción](deploy/README.md) para Nginx/Caddy + TLS.
 
 ## Estructura
 
 ```
 secopsHub/
-├── backend/          # API REST Flask (puerto 5000)
-└── frontend/         # SPA React (puerto 5173)
+├── backend/          # API REST Flask (dev :5000, prod vía Gunicorn)
+├── frontend/         # SPA React (dev :5173, prod → dist/)
+└── deploy/           # Nginx, Caddy, systemd, scripts build
 ```
 
 ## Credenciales de prueba
@@ -98,23 +99,35 @@ curl -X POST http://localhost:5000/api/webhooks/alert \
   -d '{"title": "Alerta externa", "severity": "high", "source": "SIEM"}'
 ```
 
-## Variables de entorno (opcional)
+## Variables de entorno
 
-Crea un archivo `.env` en `backend/`:
+Copia `backend/.env.example` → `backend/.env`. Sin claves de threat intel o EDR, el sistema opera en **modo simulado** con fallback automático.
 
 ```env
 SECRET_KEY=tu-clave-secreta
 JWT_SECRET_KEY=tu-clave-jwt
 WEBHOOK_API_KEY=tu-api-key-webhook
 DATABASE_URL=sqlite:///secops_hub.db
+
+# Opcional — activar enriquecimiento real
+ABUSEIPDB_API_KEY=
+VIRUSTOTAL_API_KEY=
+
+# Opcional — activar playbooks reales
+EDR_TYPE=defender
+EDR_API_TOKEN=
+FIREWALL_API_URL=
+AZURE_AD_TENANT_ID=
 ```
+
+Estado de integraciones: `GET /api/integrations/status` (requiere JWT).
 
 ## Módulos
 
 1. **Dashboard** — KPIs, gráficos de severidad, eventos por hora y feed de auditoría
-2. **IOCs** — Triaje y enriquecimiento simulado (AbuseIPDB / VirusTotal)
+2. **IOCs** — Triaje con enriquecimiento live (AbuseIPDB/VirusTotal) o simulado
 3. **Vulnerabilidades** — Tabla CVE con filtro CISA KEV
-4. **Playbooks** — Automatización de respuesta (aislar host, revocar usuario, escaneo)
+4. **Playbooks** — Respuesta automatizada (aislar host, bloquear IP, revocar usuario)
 5. **Informes PDF** — Exportación de reportes ejecutivos por incidente
 
 ## Documentación
@@ -132,6 +145,8 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | [Integración en red](docs/integracion-red.md) | Splunk, QRadar, firewall, EDR |
 | [Diccionario de términos](docs/diccionario.md) | Glosario SOC y técnico con ejemplos |
 | [Ejemplos prácticos](docs/ejemplos-practicos.md) | Escenarios SOC y casos de prueba TC-01–TC-15 |
+| [Roadmap integración](docs/roadmap-integracion.md) | Plan simulado → producción por fases |
+| [Despliegue producción](deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall |
 
 ## Licencia
 

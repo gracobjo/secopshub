@@ -52,7 +52,11 @@ export interface EnrichResult {
     abuse_confidence_score: number;
     country: string;
     total_reports: number;
+    mode?: string;
+    fallback_reason?: string;
   } | null;
+  enrichment_mode?: string;
+  sources_used?: string[];
 }
 
 export interface Vulnerability {
@@ -80,6 +84,7 @@ export interface PlaybookResult {
   description: string;
   status: string;
   result: string;
+  mode?: string;
 }
 
 export interface DashboardStats {

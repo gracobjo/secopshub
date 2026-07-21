@@ -10,11 +10,15 @@ export default function PlaybooksPage() {
   const [results, setResults] = useState<PlaybookResult[]>([]);
   const [running, setRunning] = useState<string | null>(null);
   const [params, setParams] = useState<Record<string, string>>({});
+  const [integrationMode, setIntegrationMode] = useState<string>('simulated');
 
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     api.get<Playbook[]>('/playbooks').then(({ data }) => setPlaybooks(data));
+    api.get<{ respuesta: { mode: string } }>('/integrations/status').then(({ data }) => {
+      setIntegrationMode(data.respuesta.mode);
+    });
   }, []);
 
   const handleRun = async (playbookId: string) => {
@@ -39,6 +43,15 @@ export default function PlaybooksPage() {
         <h1 className="text-2xl font-bold text-slate-100">Playbooks de Respuesta</h1>
         <p className="text-slate-400 mt-1">
           Automatización de respuesta a incidentes
+          <span
+            className={`ml-2 px-2 py-0.5 rounded text-xs ${
+              integrationMode === 'live'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-amber-500/20 text-amber-400'
+            }`}
+          >
+            Respuesta: {integrationMode === 'live' ? 'integraciones configuradas' : 'simulada'}
+          </span>
           {!isAdmin && (
             <span className="ml-2 text-amber-400">
               (Solo lectura — requiere rol admin para ejecutar)
@@ -100,6 +113,11 @@ export default function PlaybooksPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-200">{result.name}</p>
                   <p className="text-sm text-slate-400 mt-1">{result.result}</p>
+                  {result.mode && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Modo: {result.mode === 'live' ? 'integración real' : 'simulado'}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

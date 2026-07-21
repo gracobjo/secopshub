@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 
 from app import db
 from app.models import IOC
-from app.services.ioc_enrichment import enrich_ioc
+from app.services.ioc_service import enrich_ioc
 from app.utils.decorators import analyst_or_admin_required
 from app.utils.helpers import log_action
 

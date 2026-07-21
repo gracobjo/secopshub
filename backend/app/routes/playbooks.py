@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from app.services.ioc_enrichment import run_playbook
+from app.services.playbook_runners import run_playbook
 from app.utils.decorators import admin_required
 from app.utils.helpers import log_action
 
@@ -19,6 +19,12 @@ AVAILABLE_PLAYBOOKS = [
         "name": "Revocar Usuario",
         "description": "Revoca credenciales y cierra sesiones activas del usuario",
         "params": ["username"],
+    },
+    {
+        "id": "block_ip",
+        "name": "Bloquear IP en Firewall",
+        "description": "Anade una IP maliciosa a la deny list del firewall corporativo",
+        "params": ["ip"],
     },
     {
         "id": "data_scan",

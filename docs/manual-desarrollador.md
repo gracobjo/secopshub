@@ -297,12 +297,21 @@ Flask sirve `frontend/dist/` en `/` y la API en `/api/*`.
 
 | Componente | Recomendación |
 |------------|---------------|
-| WSGI | Gunicorn o Waitress (no usar `debug=True`) |
-| Frontend | Nginx sirviendo `dist/` o CDN |
-| BD | PostgreSQL (cambiar `DATABASE_URL`) |
-| Secrets | Variables de entorno, claves ≥ 32 bytes |
-| HTTPS | Obligatorio en producción |
-| CORS | Restringir `origins` a dominios conocidos |
+| Reverse proxy | **Nginx o Caddy** en `:443` — ver [`deploy/README.md`](../deploy/README.md) |
+| WSGI | Gunicorn (`wsgi:app`) vía systemd, solo `127.0.0.1:5000` |
+| Frontend | Nginx sirve `frontend/dist/`; `/api/*` → Gunicorn |
+| BD | PostgreSQL (`DATABASE_URL`) |
+| Secrets | `.env` con claves ≥ 32 bytes, `ENABLE_SEED=false` |
+| HTTPS | Obligatorio; certbot o CA interna |
+| Proxy headers | `BEHIND_PROXY=true` activa `ProxyFix` en Flask |
+
+```bash
+# Build producción
+./deploy/scripts/build-production.sh
+
+# Arranque WSGI (manual)
+cd backend && gunicorn -w 4 -b 127.0.0.1:5000 wsgi:app
+```
 
 ---
 

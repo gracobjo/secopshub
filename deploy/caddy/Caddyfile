@@ -1,0 +1,50 @@
+# SecOps Hub — Caddy reverse proxy (alternativa a Nginx)
+#
+# TLS automático con Let's Encrypt si el dominio es público y resoluble.
+# Para CA interna (.local), usar tls internal o certificados propios.
+#
+# Instalación:
+#   1. Ajustar secops.empresa.local y rutas
+#   2. caddy validate --config Caddyfile
+#   3. caddy run --config Caddyfile   (o systemd caddy.service)
+
+{
+	email ops@empresa.local
+}
+
+secops.empresa.local {
+	# TLS automático (Let's Encrypt) o descomentar para CA interna:
+	# tls internal
+
+	root * /opt/secops-hub/frontend/dist
+	encode gzip
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# Webhook SIEM (rate limit: usar Nginx o plugin caddy-ratelimit)
+	@webhook path /api/webhooks/*
+	handle @webhook {
+		reverse_proxy 127.0.0.1:5000 {
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# API REST
+	@api path /api/*
+	handle @api {
+		reverse_proxy 127.0.0.1:5000 {
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# SPA — fallback a index.html
+	try_files {path} /index.html
+	file_server
+}

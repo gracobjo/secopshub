@@ -81,13 +81,24 @@ export default function IOCsPage() {
         <div className="card border-emerald-500/30">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-100">Resultado del análisis</h2>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                verdictStyles[result.verdict] || verdictStyles.clean
-              }`}
-            >
-              {result.verdict.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  result.enrichment_mode === 'live'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'bg-amber-500/20 text-amber-400'
+                }`}
+              >
+                {result.enrichment_mode === 'live' ? 'API en vivo' : 'Modo simulado'}
+              </span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                  verdictStyles[result.verdict] || verdictStyles.clean
+                }`}
+              >
+                {result.verdict.toUpperCase()}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
