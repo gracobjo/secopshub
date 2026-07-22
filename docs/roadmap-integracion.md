@@ -33,7 +33,7 @@ Estado: `GET /api/integrations/status`
 4. **Fase 4** — Respuesta automatizada (EDR, firewall, AD)
 5. **Fase 5** — Operación continua (SSO, monitorización, runbooks)
 
-> **Esta semana (mínimo viable):** Fase 1 + una alerta de prueba Splunk/QRadar (Fase 2).
+> **Esta semana (mínimo viable):** montar lab desde cero ([laboratorio-infraestructura.md](laboratorio-infraestructura.md)) o, si ya hay red corporativa, Fase 1 + una alerta de prueba Splunk/QRadar (Fase 2).
 
 ---
 

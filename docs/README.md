@@ -5,7 +5,8 @@
 | Documento | Descripción | Audiencia |
 |-----------|-------------|-----------|
 | [Manual de usuario](manual-usuario.md) | Guía de uso de la consola SOC | Analistas, administradores |
-| [Manual de laboratorio](manual-laboratorio.md) | Ejercicios prácticos paso a paso | Estudiantes, formación SOC |
+| [Manual de laboratorio](manual-laboratorio.md) | Ejercicios prácticos paso a paso (uso de la consola) | Estudiantes, formación SOC |
+| [Laboratorio de infraestructura](laboratorio-infraestructura.md) | Montar desde cero Hub + SIEM lab (Wazuh) + webhook sin stack corporativo | DevSecOps, formadores |
 | [Manual de desarrollador](manual-desarrollador.md) | Arquitectura, API, despliegue y convenciones | Desarrolladores |
 | [Requisitos](requisitos.md) | Requisitos funcionales y no funcionales | Producto, QA, desarrollo |
 | [Casos de uso](casos-de-uso.md) | Casos de uso, flujos e implementación | Analistas, desarrolladores |

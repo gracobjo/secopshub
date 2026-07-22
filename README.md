@@ -166,6 +166,8 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | [Diccionario de términos](docs/diccionario.md) | Glosario SOC y técnico con ejemplos |
 | [Ejemplos prácticos](docs/ejemplos-practicos.md) | Escenarios SOC y casos de prueba TC-01–TC-15 |
 | [Roadmap integración](docs/roadmap-integracion.md) | Plan simulado → producción por fases |
+| [Runbook operativo](docs/runbook-operacion.md) | Docker, MFA, LDAP, rotación webhook, métricas |
+| [Laboratorio de infraestructura](docs/laboratorio-infraestructura.md) | Montar lab desde cero (Hub + Wazuh + webhook) |
 | [Despliegue producción](deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall |
 
 ## Licencia

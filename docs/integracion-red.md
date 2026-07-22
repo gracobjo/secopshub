@@ -2,6 +2,8 @@
 
 Guía paso a paso para conectar SecOps Hub con sistemas reales de una red corporativa: **SIEM** (Splunk, QRadar), **firewall** y **EDR**.
 
+> **¿Aún no tienes SIEM/EDR corporativos?** Empieza por el [laboratorio de infraestructura](laboratorio-infraestructura.md) (Docker + Wazuh lab + webhook) y vuelve aquí cuando enlaces productos de producción.
+
 **Audiencia:** administradores de seguridad, ingenieros SOC, DevSecOps.
 
 ---
