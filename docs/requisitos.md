@@ -126,10 +126,10 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | ID | RF-11 |
 |----|-------|
-| **Descripción** | Marcar IOCs maliciosos como bloqueados |
+| **Descripción** | Marcar IOCs maliciosos como bloqueados y, si son IP, orquestar bloqueo en firewall |
 | **Prioridad** | Media |
-| **Criterio de aceptación** | Campo `blocked=true` y entrada en audit log |
-| **Implementación** | `POST /api/iocs/<id>/block` |
+| **Criterio de aceptación** | Campo `blocked=true`, audit log; IPs ejecutan playbook `block_ip` tras `confirm=true` |
+| **Implementación** | `POST /api/iocs/<id>/block`, `playbook_runners.block_ip` |
 
 ### RF-12 — Gestión de vulnerabilidades
 

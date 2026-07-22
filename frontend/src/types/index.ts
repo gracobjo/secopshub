@@ -76,15 +76,18 @@ export interface Playbook {
   name: string;
   description: string;
   params: string[];
+  destructive?: boolean;
 }
 
 export interface PlaybookResult {
   playbook_id: string;
   name: string;
-  description: string;
+  description?: string;
   status: string;
   result: string;
   mode?: string;
+  error?: string;
+  fallback_reason?: string;
 }
 
 export interface DashboardStats {

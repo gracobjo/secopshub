@@ -61,8 +61,57 @@ def enrich():
 @jwt_required()
 @analyst_or_admin_required
 def block_ioc(ioc_id):
+    """Marca el IOC como bloqueado y, si es IP, ejecuta playbook block_ip."""
+    from app.services.playbook_runners import run_playbook
+
+    data = request.get_json(silent=True) or {}
+    confirmed = bool(data.get("confirm"))
+
     ioc = IOC.query.get_or_404(ioc_id)
+
+    playbook_result = None
+    if ioc.ioc_type == "ip":
+        if not confirmed:
+            return (
+                jsonify(
+                    {
+                        "error": "Confirmación requerida para bloquear IP en firewall",
+                        "requires_confirm": True,
+                    }
+                ),
+                400,
+            )
+        playbook_result = run_playbook("block_ip", {"ip": ioc.value})
+        if playbook_result.get("status") == "failed" and playbook_result.get("mode") == "live":
+            return (
+                jsonify(
+                    {
+                        "error": playbook_result.get("error") or "Fallo al bloquear en firewall",
+                        "playbook": playbook_result,
+                        "ioc": ioc.to_dict(),
+                    }
+                ),
+                502,
+            )
+
     ioc.blocked = True
     db.session.commit()
-    log_action("IOC bloqueado", f"IOC {ioc.value} bloqueado")
-    return jsonify({"message": "IOC bloqueado", "ioc": ioc.to_dict()}), 200
+
+    details = f"IOC {ioc.value} bloqueado"
+    if playbook_result:
+        details += (
+            f" | playbook block_ip [{playbook_result.get('mode')}/"
+            f"{playbook_result.get('status')}]: {playbook_result.get('result')}"
+        )
+    log_action("IOC bloqueado", details)
+
+    return (
+        jsonify(
+            {
+                "message": "IOC bloqueado",
+                "ioc": ioc.to_dict(),
+                "playbook": playbook_result,
+            }
+        ),
+        200,
+    )

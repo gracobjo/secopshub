@@ -41,7 +41,11 @@ class Config:
     FIREWALL_API_URL = os.getenv("FIREWALL_API_URL")
     FIREWALL_API_KEY = os.getenv("FIREWALL_API_KEY")
     AZURE_AD_TENANT_ID = os.getenv("AZURE_AD_TENANT_ID")
+    AZURE_AD_CLIENT_ID = os.getenv("AZURE_AD_CLIENT_ID")
+    AZURE_AD_CLIENT_SECRET = os.getenv("AZURE_AD_CLIENT_SECRET")
+    AZURE_AD_ACCESS_TOKEN = os.getenv("AZURE_AD_ACCESS_TOKEN")
     PLAYBOOK_CALLBACK_URL = os.getenv("PLAYBOOK_CALLBACK_URL")
+    FIREWALL_TLS_VERIFY = os.getenv("FIREWALL_TLS_VERIFY", "true").lower() == "true"
 
     # Operacion
     ENABLE_SEED = os.getenv("ENABLE_SEED", "true").lower() == "true"

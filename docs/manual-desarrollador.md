@@ -210,7 +210,13 @@ GET /api/vulnerabilities?severity=&kev_only=true   [JWT]
 
 ```
 GET  /api/playbooks           [JWT]
-POST /api/playbooks/run       [JWT admin] { playbook_id, params? }
+POST /api/playbooks/run       [JWT admin]
+     { playbook_id, params?, confirm: true }
+     Acciones destructivas (isolate_host, block_ip, revoke_user)
+     exigen confirm=true. Sin credenciales → mode=simulated.
+     Con integración ejecutable → HTTP real (mode=live).
+GET  /api/integrations/status [JWT]
+     respuesta.executable.{isolate_host,block_ip,...}
 ```
 
 ### Webhooks

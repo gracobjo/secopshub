@@ -140,11 +140,12 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 
 ### Flujo principal
 
-1. Usuario pulsa "Bloquear" en fila de tabla IOCs
-2. Frontend envía `POST /api/iocs/:id/block`
-3. Backend actualiza `IOC.blocked = True`
-4. Se registra en audit log
-5. Tabla se refresca
+1. Usuario pulsa "Bloquear" / "Bloquear en FW" y confirma el diálogo
+2. Frontend envía `POST /api/iocs/:id/block` con `{ confirm: true }`
+3. Si el IOC es IP → se ejecuta playbook `block_ip` (live o simulado)
+4. Backend actualiza `IOC.blocked = True`
+5. Se registra en audit log (incluye resultado del playbook si aplica)
+6. Tabla se refresca
 
 ### Implementación
 
@@ -194,12 +195,12 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 ### Flujo principal
 
 1. Admin accede a `/playbooks`
-2. Rellena parámetros (hostname, username, target)
-3. Pulsa "Ejecutar" en playbook deseado
-4. Frontend envía `POST /api/playbooks/run` con `{ playbook_id, params }`
-5. Backend verifica `@admin_required`
-6. `run_playbook()` simula ejecución
-7. Resultado mostrado en panel de resultados
+2. Rellena parámetros (hostname, ip, username, …)
+3. Pulsa "Ejecutar" y confirma el diálogo (acciones destructivas)
+4. Frontend envía `POST /api/playbooks/run` con `{ playbook_id, params, confirm: true }`
+5. Backend verifica `@admin_required` y `confirm`
+6. `run_playbook()` ejecuta HTTP real si la integración es ejecutable; si no, simula
+7. Resultado (completed/failed + mode) en panel de resultados
 8. Acción registrada en audit log
 
 ### Flujo alternativo — Usuario analyst
@@ -212,7 +213,8 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | Capa | Archivo |
 |------|---------|
 | Backend | `app/routes/playbooks.py` → `run()` |
-| Backend | `app/services/ioc_enrichment.py` → `run_playbook()` |
+| Backend | `app/services/playbook_runners.py` → `run_playbook()` |
+| Backend | `app/services/integration_capabilities.py` |
 | Frontend | `src/pages/PlaybooksPage.tsx` |
 
 ---

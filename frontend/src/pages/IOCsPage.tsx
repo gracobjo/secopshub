@@ -16,6 +16,9 @@ export default function IOCsPage() {
   const [loading, setLoading] = useState(false);
   const [enriching, setEnriching] = useState(false);
 
+  const [blockingId, setBlockingId] = useState<number | null>(null);
+  const [blockError, setBlockError] = useState('');
+
   const fetchIocs = () => {
     setLoading(true);
     api
@@ -44,9 +47,26 @@ export default function IOCsPage() {
     }
   };
 
-  const handleBlock = async (iocId: number) => {
-    await api.post(`/iocs/${iocId}/block`);
-    fetchIocs();
+  const handleBlock = async (ioc: IOC) => {
+    setBlockError('');
+    const isIp = ioc.ioc_type === 'ip';
+    const message = isIp
+      ? `¿Bloquear la IP ${ioc.value} en el firewall (playbook block_ip) y marcarla en SecOps Hub?`
+      : `¿Marcar el IOC ${ioc.value} como bloqueado?`;
+    if (!window.confirm(message)) return;
+
+    setBlockingId(ioc.id);
+    try {
+      await api.post(`/iocs/${ioc.id}/block`, { confirm: true });
+      fetchIocs();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'No se pudo bloquear el IOC';
+      setBlockError(msg);
+    } finally {
+      setBlockingId(null);
+    }
   };
 
   return (
@@ -152,6 +172,11 @@ export default function IOCsPage() {
 
       <div className="card">
         <h2 className="text-lg font-semibold text-slate-100 mb-4">IOCs registrados</h2>
+        {blockError && (
+          <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
+            {blockError}
+          </div>
+        )}
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-emerald-500" />
@@ -210,10 +235,15 @@ export default function IOCsPage() {
                     <td className="py-3">
                       {!ioc.blocked && ioc.verdict === 'malicious' && (
                         <button
-                          onClick={() => handleBlock(ioc.id)}
-                          className="btn-danger text-xs py-1 px-2"
+                          onClick={() => handleBlock(ioc)}
+                          disabled={blockingId === ioc.id}
+                          className="btn-danger text-xs py-1 px-2 disabled:opacity-50"
                         >
-                          Bloquear
+                          {blockingId === ioc.id
+                            ? 'Bloqueando...'
+                            : ioc.ioc_type === 'ip'
+                              ? 'Bloquear en FW'
+                              : 'Bloquear'}
                         </button>
                       )}
                     </td>

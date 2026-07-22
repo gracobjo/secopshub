@@ -126,7 +126,12 @@ Muestra todos los IOCs almacenados con tipo, riesgo, veredicto y estado de bloqu
 
 ### Bloquear un IOC
 
-Para IOCs con veredicto **malicious** que aún no están bloqueados, aparece el botón **Bloquear**. Al pulsarlo, el IOC queda marcado como bloqueado y se registra en el log de auditoría.
+Para IOCs con veredicto **malicious** que aún no están bloqueados, aparece el botón **Bloquear** (o **Bloquear en FW** si es una IP).
+
+1. Confirme el diálogo de seguridad.
+2. El IOC se marca como bloqueado en SecOps Hub.
+3. Si el IOC es una **IP**, se ejecuta además el playbook `block_ip` (firewall/callback si está configurado; si no, modo simulado).
+4. La acción queda en el log de auditoría.
 
 > **Acceso:** Requiere rol `analyst` o `admin`.
 
@@ -164,19 +169,21 @@ Automatizaciones de respuesta a incidentes.
 
 ### Playbooks disponibles
 
-| Playbook | Descripción | Parámetros |
-|----------|-------------|------------|
-| Aislar Host | Desconecta un host de la red | `hostname` |
-| Revocar Usuario | Revoca credenciales y sesiones | `username` |
-| Escaneo de Datos | Busca datos sensibles expuestos | `target` |
+| Playbook | Descripción | Parámetros | Destructivo |
+|----------|-------------|------------|:-----------:|
+| Aislar Host | Desconecta un host vía EDR (Defender/Falcon) | `hostname`, `device_id` opcional | Sí |
+| Revocar Usuario | Revoca sesiones vía Azure AD Graph | `username` | Sí |
+| Bloquear IP | Deny list en firewall / callback SOAR | `ip` | Sí |
+| Escaneo de Datos | Busca datos sensibles (siempre simulado) | `target` | No |
 
 ### Ejecutar un playbook
 
-1. Si es **administrador**, rellene los parámetros opcionales.
-2. Pulse **Ejecutar**.
-3. El resultado aparece en la sección *Resultados de ejecución*.
+1. Si es **administrador**, rellene los parámetros.
+2. Pulse **Ejecutar** y confirme el diálogo (acciones destructivas).
+3. El backend exige `confirm=true`. Sin integración configurada responde en modo **simulado**; con credenciales ejecuta **HTTP real**.
+4. El resultado (éxito o error live) aparece en *Resultados de ejecución*.
 
-> Los usuarios con rol **analyst** pueden ver los playbooks pero **no ejecutarlos**. El botón aparece deshabilitado.
+> Los usuarios con rol **analyst** pueden ver los playbooks pero **no ejecutarlos**.
 
 ### Webhook de alertas externas
 
@@ -184,7 +191,7 @@ Sistemas externos (SIEM, EDR, etc.) pueden enviar alertas mediante:
 
 ```http
 POST /api/webhooks/alert
-Header: X-API-Key: secops-webhook-key-dev
+Header: X-API-Key: <WEBHOOK_API_KEY>
 Content-Type: application/json
 
 {

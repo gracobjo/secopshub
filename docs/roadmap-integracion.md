@@ -81,14 +81,16 @@ Payload Splunk:
 - [ ] Sincronizar catálogo CISA KEV automáticamente (hoy: seed fijo)
 - [ ] `ENABLE_SEED=false` en producción
 
-### Fase 4 — Respuesta automatizada (scaffolding listo)
+### Fase 4 — Respuesta automatizada
 
 - [x] Runners extensibles (`playbook_runners.py`)
 - [x] Playbooks: `isolate_host`, `block_ip`, `revoke_user`, `data_scan`
-- [x] Endpoint `/api/integrations/status`
-- [ ] Llamadas HTTP completas a Defender / CrowdStrike / Palo Alto / Graph API
-- [ ] Variables `.env`: `EDR_API_TOKEN`, `FIREWALL_API_KEY`, `AZURE_AD_TENANT_ID`, etc.
-- [ ] Decidir aprobación manual antes de acciones destructivas (aislar/bloquear)
+- [x] Endpoint `/api/integrations/status` con `executable` por playbook
+- [x] Llamadas HTTP reales a Defender / CrowdStrike / Palo Alto / pfSense / Graph API
+- [x] Confirmación obligatoria (`confirm=true`) para acciones destructivas
+- [x] Bloquear IOC IP → ejecuta playbook `block_ip`
+- [ ] Credenciales reales en el entorno de producción
+- [ ] Aprobación 4-eyes (segundo operador) — hoy: confirmación del mismo admin
 
 ### Fase 5 — Operación continua
 
