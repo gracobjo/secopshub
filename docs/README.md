@@ -13,6 +13,7 @@
 | [Integración en red](integracion-red.md) | Conectar Splunk, QRadar, firewall y EDR | SOC, DevSecOps, administradores |
 | [Diagrama flujo de red](flujo_red_secops_hub.svg) | Cuatro direcciones de comunicación en red corporativa | Arquitectos, SOC |
 | [Roadmap de integración](roadmap-integracion.md) | Evolución simulado → producción por fases | DevSecOps, arquitectos |
+| [Threat intel](threat-intel.md) | AbuseIPDB/VirusTotal: claves, cuotas y buenas prácticas | SOC, DevSecOps |
 | [Despliegue producción](../deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall | DevSecOps, sysadmins |
 | [Diccionario de términos](diccionario.md) | Glosario SOC, técnico y de productos | Todos |
 | [Ejemplos prácticos y casos de prueba](ejemplos-practicos.md) | Escenarios SOC ejecutables y matriz TC-01–TC-15 | Formación, QA |

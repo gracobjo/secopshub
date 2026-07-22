@@ -19,6 +19,9 @@ export interface Incident {
   status: string;
   source: string;
   assigned_to: string;
+  external_id?: string | null;
+  src_ip?: string | null;
+  hostname?: string | null;
   created_at: string;
   updated_at: string;
 }

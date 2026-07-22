@@ -92,12 +92,15 @@ Abre `http://localhost:5173` e inicia sesión con las credenciales de prueba.
 
 ### Informes
 - `GET /api/incidents/<id>/report/pdf` — Exportar informe PDF del incidente (JWT)
+- `GET /api/health` — Health check (DB)
+- `POST /api/vulnerabilities/sync-kev` — Sincronizar catálogo CISA KEV (admin)
 
 ```bash
 curl -X POST http://localhost:5000/api/webhooks/alert \
   -H "Content-Type: application/json" \
   -H "X-API-Key: secops-webhook-key-dev" \
-  -d '{"title": "Alerta externa", "severity": "high", "source": "SIEM"}'
+  -H "Idempotency-Key: splunk-evt-001" \
+  -d '{"title": "Alerta externa", "severity": "high", "source": "SIEM", "src_ip": "203.0.113.10", "hostname": "fw-01"}'
 ```
 
 ## Variables de entorno

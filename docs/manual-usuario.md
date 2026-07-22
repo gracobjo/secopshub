@@ -157,7 +157,12 @@ Tabla de CVEs con información de severidad, puntuación CVSS, sistemas afectado
 - **Severidad / CVSS:** nivel y puntuación
 - **KEV:** badge si está en el catálogo CISA Known Exploited Vulnerabilities
 - **Sistemas afectados:** activos impactados
-- **Estado:** open, in_progress, mitigated, etc.
+- **Estado:** editable (`open`, `in_progress`, `mitigated`, `accepted`, `closed`)
+
+### Acciones
+
+1. Cambiar el **estado** desde el desplegable de cada fila (analista o admin).
+2. **Sync CISA KEV** (solo admin): descarga el feed oficial e inserta/actualiza CVEs explotados activamente.
 
 ---
 

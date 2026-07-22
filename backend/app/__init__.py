@@ -1,7 +1,9 @@
-from flask import Flask
+from flask import Flask, g, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
+import logging
+import time
 
 from config import Config, validate_production_config
 
@@ -14,6 +16,11 @@ def create_app(config_class=Config):
 
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    from app.services.logging_setup import configure_logging
+
+    configure_logging(app)
+    logger = logging.getLogger("secops.http")
 
     if app.config.get("BEHIND_PROXY") or app.config.get("FLASK_ENV") == "production":
         from werkzeug.middleware.proxy_fix import ProxyFix
@@ -37,6 +44,7 @@ def create_app(config_class=Config):
     from app.routes.webhooks import webhooks_bp
     from app.routes.integrations import integrations_bp
     from app.routes.frontend import frontend_bp
+    from app.routes.health import health_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(incidents_bp, url_prefix="/api/incidents")
@@ -45,10 +53,32 @@ def create_app(config_class=Config):
     app.register_blueprint(playbooks_bp, url_prefix="/api/playbooks")
     app.register_blueprint(webhooks_bp, url_prefix="/api/webhooks")
     app.register_blueprint(integrations_bp, url_prefix="/api/integrations")
+    app.register_blueprint(health_bp)
     app.register_blueprint(frontend_bp)
+
+    @app.before_request
+    def _start_timer():
+        g._start = time.perf_counter()
+
+    @app.after_request
+    def _log_request(response):
+        if request.path.startswith("/api/") or request.path == "/health":
+            duration = (time.perf_counter() - getattr(g, "_start", time.perf_counter())) * 1000
+            logger.info(
+                "%s %s -> %s (%.1fms)",
+                request.method,
+                request.path,
+                response.status_code,
+                duration,
+            )
+        return response
 
     with app.app_context():
         db.create_all()
+        from app.services.schema import ensure_schema
+
+        ensure_schema()
+
         from app.services.bootstrap import bootstrap_admin_if_needed
         from app.services.seed import seed_database
 
@@ -56,5 +86,15 @@ def create_app(config_class=Config):
             seed_database()
         else:
             bootstrap_admin_if_needed()
+
+        if app.config.get("KEV_SYNC_ON_STARTUP"):
+            try:
+                from app.services.kev_sync import sync_cisa_kev
+
+                sync_cisa_kev(limit=app.config.get("KEV_SYNC_LIMIT"))
+            except Exception:
+                logging.getLogger("secops.kev").exception(
+                    "KEV sync on startup failed"
+                )
 
     return app

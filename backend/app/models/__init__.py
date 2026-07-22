@@ -43,6 +43,9 @@ class Incident(db.Model):
     status = db.Column(db.String(20), nullable=False, default="open")
     source = db.Column(db.String(100))
     assigned_to = db.Column(db.String(80))
+    external_id = db.Column(db.String(128), unique=True, nullable=True, index=True)
+    src_ip = db.Column(db.String(64), nullable=True)
+    hostname = db.Column(db.String(200), nullable=True)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -61,6 +64,9 @@ class Incident(db.Model):
             "status": self.status,
             "source": self.source,
             "assigned_to": self.assigned_to,
+            "external_id": self.external_id,
+            "src_ip": self.src_ip,
+            "hostname": self.hostname,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

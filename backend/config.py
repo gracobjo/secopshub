@@ -57,6 +57,19 @@ class Config:
     BOOTSTRAP_ADMIN_EMAIL = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@secops.local")
     BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD")
 
+    # Operación / observabilidad
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_JSON = os.getenv("LOG_JSON", "false").lower() == "true"
+    WEBHOOK_DEDUP_WINDOW_MINUTES = int(os.getenv("WEBHOOK_DEDUP_WINDOW_MINUTES", "15"))
+    CISA_KEV_URL = os.getenv(
+        "CISA_KEV_URL",
+        "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    )
+    CISA_KEV_TIMEOUT = int(os.getenv("CISA_KEV_TIMEOUT", "60"))
+    KEV_SYNC_ON_STARTUP = os.getenv("KEV_SYNC_ON_STARTUP", "false").lower() == "true"
+    _kev_limit = os.getenv("KEV_SYNC_LIMIT")
+    KEV_SYNC_LIMIT = int(_kev_limit) if _kev_limit else None
+
 
 def validate_production_config(config: type[Config] | Config) -> None:
     """Falla el arranque en producción si los secretos son inseguros."""

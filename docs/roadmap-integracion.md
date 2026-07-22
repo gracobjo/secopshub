@@ -72,13 +72,18 @@ Payload Splunk:
 }
 ```
 
-### Fase 3 — Triaje real (scaffolding listo)
+### Fase 3 — Triaje real
 
 - [x] Clientes HTTP AbuseIPDB + VirusTotal (`external_clients.py`)
 - [x] Orquestación live/simulado (`ioc_service.py`)
 - [x] Indicador `enrichment_mode` en API y UI
+- [x] Documentación de cuotas ([threat-intel.md](threat-intel.md))
+- [x] Sync CISA KEV (`POST /api/vulnerabilities/sync-kev`, opcional al arranque)
+- [x] PATCH estado de vulnerabilidad
+- [x] Webhook con idempotencia (`Idempotency-Key` / `external_id`) + `src_ip`/`hostname`
+- [x] `GET /api/health` (+ `/health`) y logging estructurado opcional (`LOG_JSON`)
+- [x] Tests API críticos (`backend/tests/` — auth, webhook, enrich, health)
 - [ ] Configurar `ABUSEIPDB_API_KEY` y `VIRUSTOTAL_API_KEY` en producción
-- [ ] Sincronizar catálogo CISA KEV automáticamente (hoy: seed fijo)
 - [ ] `ENABLE_SEED=false` en producción
 
 ### Fase 4 — Respuesta automatizada

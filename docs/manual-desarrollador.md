@@ -192,18 +192,36 @@ GET   /api/incidents/stats                [JWT] → KPIs + gráficos + audit fee
 GET   /api/incidents/<id>/report/pdf      [JWT] → Informe PDF ejecutivo
 ```
 
+### Vulnerabilidades
+
+```
+GET   /api/vulnerabilities                [JWT] ?severity=&kev_only=&status=
+PATCH /api/vulnerabilities/<id>           [JWT analyst|admin] { status }
+POST  /api/vulnerabilities/sync-kev       [JWT admin] { limit? } → upsert CISA KEV
+```
+
+### Webhooks
+
+```
+POST /api/webhooks/alert      [X-API-Key]
+     Headers opcionales: Idempotency-Key
+     Body: title?, description?, severity?, source?,
+           external_id|alert_id|event_id?, src_ip|ip?, hostname|host?
+     → 201 creado | 200 duplicado
+```
+
+### Salud
+
+```
+GET /api/health   (también GET /health)  → status ok|degraded, check DB
+```
+
 ### IOCs
 
 ```
 GET  /api/iocs                [JWT analyst|admin]
 POST /api/iocs/enrich         [JWT analyst|admin] { value }
 POST /api/iocs/:id/block      [JWT analyst|admin]
-```
-
-### Vulnerabilidades
-
-```
-GET /api/vulnerabilities?severity=&kev_only=true   [JWT]
 ```
 
 ### Playbooks
@@ -217,12 +235,6 @@ POST /api/playbooks/run       [JWT admin]
      Con integración ejecutable → HTTP real (mode=live).
 GET  /api/integrations/status [JWT]
      respuesta.executable.{isolate_host,block_ip,...}
-```
-
-### Webhooks
-
-```
-POST /api/webhooks/alert      [X-API-Key] { title?, description?, severity?, source? }
 ```
 
 ### Códigos de respuesta habituales

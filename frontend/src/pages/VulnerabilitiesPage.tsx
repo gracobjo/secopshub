@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import type { Vulnerability } from '../types';
 
 const severityStyles: Record<string, string> = {
@@ -9,13 +11,22 @@ const severityStyles: Record<string, string> = {
   low: 'bg-emerald-500/20 text-emerald-400',
 };
 
+const VULN_STATUSES = ['open', 'in_progress', 'mitigated', 'accepted', 'closed'] as const;
+
 export default function VulnerabilitiesPage() {
+  const { user } = useAuth();
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState('');
   const [kevOnly, setKevOnly] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const isAdmin = user?.role === 'admin';
+
+  const fetchVulns = () => {
     setLoading(true);
     const params = new URLSearchParams();
     if (severityFilter) params.set('severity', severityFilter);
@@ -25,16 +36,91 @@ export default function VulnerabilitiesPage() {
       .get<Vulnerability[]>(`/vulnerabilities?${params}`)
       .then(({ data }) => setVulns(data))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchVulns();
   }, [severityFilter, kevOnly]);
+
+  const handleStatusChange = async (vuln: Vulnerability, status: string) => {
+    if (status === vuln.status) return;
+    setError('');
+    setSavingId(vuln.id);
+    try {
+      const { data } = await api.patch<Vulnerability>(`/vulnerabilities/${vuln.id}`, {
+        status,
+      });
+      setVulns((prev) => prev.map((v) => (v.id === data.id ? data : v)));
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'No se pudo actualizar el estado'
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleSyncKev = async () => {
+    if (!isAdmin) return;
+    setError('');
+    setMessage('');
+    setSyncing(true);
+    try {
+      const { data } = await api.post<{
+        created: number;
+        updated: number;
+        fetched: number;
+        catalog_version?: string;
+      }>('/vulnerabilities/sync-kev', {});
+      setMessage(
+        `KEV sincronizado: ${data.created} nuevos, ${data.updated} actualizados ` +
+          `(feed ${data.fetched}${data.catalog_version ? `, catálogo ${data.catalog_version}` : ''})`
+      );
+      fetchVulns();
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'Error al sincronizar CISA KEV'
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100">Vulnerabilidades</h1>
-        <p className="text-slate-400 mt-1">
-          Auditoría CISA KEV y cumplimiento normativo (RGPD)
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100">Vulnerabilidades</h1>
+          <p className="text-slate-400 mt-1">
+            Auditoría CISA KEV y cumplimiento normativo (RGPD)
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleSyncKev}
+            disabled={syncing}
+            className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando…' : 'Sync CISA KEV'}
+          </button>
+        )}
       </div>
+
+      {(message || error) && (
+        <div
+          className={`p-3 rounded-lg text-sm border ${
+            error
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          }`}
+        >
+          {error || message}
+        </div>
+      )}
 
       <div className="card flex flex-wrap items-center gap-4">
         <div>
@@ -112,7 +198,18 @@ export default function VulnerabilitiesPage() {
                     </td>
                     <td className="py-3 pr-4 text-slate-400">{vuln.affected_systems}</td>
                     <td className="py-3">
-                      <span className="text-slate-300 capitalize">{vuln.status}</span>
+                      <select
+                        value={vuln.status}
+                        disabled={savingId === vuln.id}
+                        onChange={(e) => handleStatusChange(vuln, e.target.value)}
+                        className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-slate-200 text-xs capitalize disabled:opacity-50"
+                      >
+                        {VULN_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                   </tr>
                 ))}
