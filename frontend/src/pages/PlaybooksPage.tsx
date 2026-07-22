@@ -1,29 +1,67 @@
-import { useEffect, useState } from 'react';
-import { Play, CheckCircle, Lock, AlertTriangle, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Play,
+  CheckCircle,
+  Lock,
+  AlertTriangle,
+  XCircle,
+  ShieldCheck,
+  Ban,
+} from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import type { Playbook, PlaybookResult } from '../types';
 
+interface PlaybookApproval {
+  id: number;
+  playbook_id: string;
+  params: Record<string, string>;
+  status: string;
+  requested_by: string;
+  approved_by?: string;
+  created_at: string;
+  result?: PlaybookResult;
+}
+
 const DESTRUCTIVE_HINTS: Record<string, string> = {
-  isolate_host: 'Esto aislará el host en el EDR. ¿Confirmas la ejecución?',
-  block_ip: 'Esto bloqueará la IP en el firewall. ¿Confirmas la ejecución?',
-  revoke_user: 'Esto revocará sesiones del usuario en Azure AD. ¿Confirmas?',
+  isolate_host: 'Esto aislará el host en el EDR. ¿Solicitar ejecución (4-eyes)?',
+  block_ip: 'Esto bloqueará la IP en el firewall. ¿Solicitar ejecución (4-eyes)?',
+  revoke_user: 'Esto revocará sesiones del usuario. ¿Solicitar ejecución (4-eyes)?',
 };
 
 export default function PlaybooksPage() {
   const { user } = useAuth();
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [results, setResults] = useState<PlaybookResult[]>([]);
+  const [approvals, setApprovals] = useState<PlaybookApproval[]>([]);
   const [running, setRunning] = useState<string | null>(null);
   const [params, setParams] = useState<Record<string, string>>({});
   const [integrationMode, setIntegrationMode] = useState<string>('simulated');
   const [executable, setExecutable] = useState<Record<string, boolean>>({});
+  const [fourEyes, setFourEyes] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const isAdmin = user?.role === 'admin';
 
+  const loadApprovals = useCallback(() => {
+    if (!isAdmin) return;
+    api.get<PlaybookApproval[]>('/playbooks/approvals?status=pending').then(({ data }) => {
+      setApprovals(data);
+    });
+  }, [isAdmin]);
+
   useEffect(() => {
-    api.get<Playbook[]>('/playbooks').then(({ data }) => setPlaybooks(data));
+    api
+      .get<{ playbooks: Playbook[]; four_eyes: boolean } | Playbook[]>('/playbooks')
+      .then(({ data }) => {
+        if (Array.isArray(data)) {
+          setPlaybooks(data);
+        } else {
+          setPlaybooks(data.playbooks);
+          setFourEyes(data.four_eyes);
+        }
+      });
     api
       .get<{
         respuesta: { mode: string; executable?: Record<string, boolean> };
@@ -32,28 +70,43 @@ export default function PlaybooksPage() {
         setIntegrationMode(data.respuesta.mode);
         setExecutable(data.respuesta.executable || {});
       });
-  }, []);
+    loadApprovals();
+  }, [loadApprovals]);
 
   const handleRun = async (playbook: Playbook) => {
     if (!isAdmin) return;
     setError('');
+    setMessage('');
 
     if (playbook.destructive !== false && DESTRUCTIVE_HINTS[playbook.id]) {
       const ok = window.confirm(
-        DESTRUCTIVE_HINTS[playbook.id] ||
-          `¿Confirmas ejecutar el playbook «${playbook.name}»?`
+        fourEyes
+          ? DESTRUCTIVE_HINTS[playbook.id]
+          : `¿Confirmas ejecutar el playbook «${playbook.name}»?`
       );
       if (!ok) return;
     }
 
     setRunning(playbook.id);
     try {
-      const { data } = await api.post<PlaybookResult>('/playbooks/run', {
+      const { data, status } = await api.post<
+        PlaybookResult & {
+          status?: string;
+          approval?: PlaybookApproval;
+          message?: string;
+        }
+      >('/playbooks/run', {
         playbook_id: playbook.id,
         params,
         confirm: true,
       });
-      setResults((prev) => [data, ...prev]);
+
+      if (status === 202 || data.status === 'pending_approval') {
+        setMessage(data.message || 'Pendiente de aprobación 4-eyes');
+        loadApprovals();
+      } else {
+        setResults((prev) => [data as PlaybookResult, ...prev]);
+      }
     } catch (err: unknown) {
       const payload = (err as { response?: { data?: PlaybookResult & { error?: string } } })
         ?.response?.data;
@@ -63,6 +116,37 @@ export default function PlaybooksPage() {
       setError(payload?.error || payload?.result || 'Error al ejecutar el playbook');
     } finally {
       setRunning(null);
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    setError('');
+    try {
+      const { data } = await api.post<{ result: PlaybookResult }>(
+        `/playbooks/approvals/${id}/approve`
+      );
+      if (data.result) setResults((prev) => [data.result, ...prev]);
+      setMessage(`Solicitud #${id} aprobada y ejecutada`);
+      loadApprovals();
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'No se pudo aprobar'
+      );
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    setError('');
+    try {
+      await api.post(`/playbooks/approvals/${id}/reject`);
+      setMessage(`Solicitud #${id} rechazada`);
+      loadApprovals();
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'No se pudo rechazar'
+      );
     }
   };
 
@@ -81,6 +165,11 @@ export default function PlaybooksPage() {
           >
             Respuesta: {integrationMode === 'live' ? 'HTTP ejecutable' : 'simulada'}
           </span>
+          {fourEyes && (
+            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-sky-500/20 text-sky-400">
+              4-eyes activo
+            </span>
+          )}
           {!isAdmin && (
             <span className="ml-2 text-amber-400">
               (Solo lectura — requiere rol admin para ejecutar)
@@ -89,10 +178,63 @@ export default function PlaybooksPage() {
         </p>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
+      {(error || message) && (
+        <div
+          className={`flex items-center gap-2 p-3 rounded-lg text-sm border ${
+            error
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+          }`}
+        >
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          {error}
+          {error || message}
+        </div>
+      )}
+
+      {isAdmin && approvals.length > 0 && (
+        <div className="card">
+          <h2 className="text-lg font-semibold text-slate-100 mb-4">
+            Aprobaciones pendientes (4-eyes)
+          </h2>
+          <div className="space-y-3">
+            {approvals.map((a) => (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg bg-slate-900/50 border border-sky-500/20"
+              >
+                <div>
+                  <p className="text-sm text-slate-200">
+                    #{a.id} · <span className="font-mono">{a.playbook_id}</span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Solicitado por {a.requested_by} ·{' '}
+                    {a.created_at ? new Date(a.created_at).toLocaleString('es-ES') : ''}
+                  </p>
+                  <p className="text-xs text-slate-400 font-mono mt-1">
+                    {JSON.stringify(a.params)}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={a.requested_by === user?.username}
+                    onClick={() => handleApprove(a.id)}
+                    className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> Aprobar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={a.requested_by === user?.username}
+                    onClick={() => handleReject(a.id)}
+                    className="btn-danger text-xs inline-flex items-center gap-1 disabled:opacity-40"
+                  >
+                    <Ban className="w-3.5 h-3.5" /> Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -145,7 +287,11 @@ export default function PlaybooksPage() {
               className="btn-primary flex items-center justify-center gap-2 mt-auto disabled:opacity-40"
             >
               <Play className="w-4 h-4" />
-              {running === pb.id ? 'Ejecutando...' : 'Ejecutar'}
+              {running === pb.id
+                ? 'Procesando...'
+                : fourEyes && pb.destructive
+                  ? 'Solicitar'
+                  : 'Ejecutar'}
             </button>
           </div>
         ))}

@@ -7,6 +7,7 @@ import {
   Play,
   LogOut,
   User,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,8 +22,8 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -56,6 +57,21 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-emerald-600/20 text-emerald-400'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+              }`
+            }
+          >
+            <Users className="w-5 h-5" />
+            Admin
+          </NavLink>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-800">

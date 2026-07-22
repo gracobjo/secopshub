@@ -41,6 +41,15 @@ secopsHub/
 
 ## Arranque local
 
+### Docker Compose (recomendado para lab/prod ligera)
+
+```bash
+cp .env.docker.example .env
+docker compose up -d --build
+```
+
+Ver [runbook operativo](docs/runbook-operacion.md).
+
 ### 1. Backend
 
 ```bash

@@ -3,12 +3,18 @@ export interface User {
   username: string;
   email: string;
   role: 'admin' | 'analyst';
+  is_active?: boolean;
+  mfa_enabled?: boolean;
+  auth_source?: string;
   created_at: string | null;
 }
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token?: string;
   user: User;
+  auth_via?: string;
+  mfa_required?: boolean;
 }
 
 export interface Incident {

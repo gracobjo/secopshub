@@ -94,16 +94,22 @@ Payload Splunk:
 - [x] Llamadas HTTP reales a Defender / CrowdStrike / Palo Alto / pfSense / Graph API
 - [x] Confirmación obligatoria (`confirm=true`) para acciones destructivas
 - [x] Bloquear IOC IP → ejecuta playbook `block_ip`
+- [x] Aprobación 4-eyes (`PLAYBOOK_FOUR_EYES`, cola `/playbooks/approvals`)
 - [ ] Credenciales reales en el entorno de producción
-- [ ] Aprobación 4-eyes (segundo operador) — hoy: confirmación del mismo admin
 
 ### Fase 5 — Operación continua
 
-- [ ] SSO / LDAP para analistas (hoy: login local, sin MFA)
-- [ ] Monitorización Prometheus + Grafana
-- [x] Rate limiting webhook en Nginx/Caddy (config incluida en `deploy/`)
-- [ ] Runbooks documentados para el equipo SOC
-- [ ] Rotación periódica de `WEBHOOK_API_KEY`
+- [x] LDAP opcional (`LDAP_ENABLED` + ldap3) y MFA TOTP
+- [x] Refresh JWT (`POST /api/auth/refresh`)
+- [x] Monitorización Prometheus (`/metrics`) + scrape config
+- [x] Grafana provisionado (profile `observability`)
+- [x] Runbook operativo ([runbook-operacion.md](runbook-operacion.md))
+- [x] Rotación `WEBHOOK_API_KEY` (`POST /api/settings/webhook-key/rotate`)
+- [x] UI administración de usuarios (`/admin`)
+- [x] Alembic baseline (`backend/migrations/`)
+- [x] Docker Compose (`docker-compose.yml`)
+- [x] SSO OIDC / Entra ID (`OIDC_*`, `/api/auth/oidc/login`)
+- [x] Cookies httpOnly opcionales (`AUTH_COOKIE_MODE=true`)
 
 ---
 

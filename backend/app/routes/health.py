@@ -37,3 +37,12 @@ def health():
         "duration_ms": round((time.perf_counter() - started) * 1000, 2),
     }
     return jsonify(payload), code
+
+
+@health_bp.route("/metrics", methods=["GET"])
+@health_bp.route("/api/metrics", methods=["GET"])
+def metrics():
+    from app.services.metrics import metrics_response
+
+    body, code, headers = metrics_response()
+    return body, code, headers

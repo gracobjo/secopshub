@@ -1,14 +1,28 @@
-import { useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 export default function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, oidcEnabled, acceptTokens } = useAuth();
+  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const access = searchParams.get('access_token');
+    const refresh = searchParams.get('refresh_token');
+    if (access) {
+      acceptTokens(access, refresh || undefined).then(() => {
+        window.history.replaceState({}, '', '/login');
+      });
+    }
+  }, [searchParams, acceptTokens]);
 
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -19,9 +33,15 @@ export default function LoginPage() {
     setError('');
     setSubmitting(true);
     try {
-      await login(username, password);
-    } catch {
-      setError('Credenciales inválidas. Inténtalo de nuevo.');
+      await login(username, password, mfaRequired ? otp : undefined);
+    } catch (err: unknown) {
+      const data = axios.isAxiosError(err) ? err.response?.data : undefined;
+      if (data?.mfa_required) {
+        setMfaRequired(true);
+        setError('Introduce el código MFA de tu autenticador');
+      } else {
+        setError(data?.error || 'Credenciales inválidas. Inténtalo de nuevo.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -77,9 +97,37 @@ export default function LoginPage() {
             />
           </div>
 
+          {mfaRequired && (
+            <div>
+              <label htmlFor="otp" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Código MFA (TOTP)
+              </label>
+              <input
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="input-field"
+                placeholder="123456"
+                required
+              />
+            </div>
+          )}
+
           <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
             {submitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </button>
+
+          {oidcEnabled && (
+            <a
+              href="/api/auth/oidc/login"
+              className="block text-center w-full py-3 rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-800 transition-colors text-sm"
+            >
+              Continuar con SSO (OIDC)
+            </a>
+          )}
 
           <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-700">
             <p>Con datos demo (ENABLE_SEED=true): admin / admin123</p>

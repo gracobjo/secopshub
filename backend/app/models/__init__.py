@@ -13,6 +13,10 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="analyst")
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    mfa_secret = db.Column(db.String(64), nullable=True)
+    mfa_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    auth_source = db.Column(db.String(20), nullable=False, default="local")
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
@@ -29,7 +33,29 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "role": self.role,
+            "is_active": self.is_active,
+            "mfa_enabled": self.mfa_enabled,
+            "auth_source": self.auth_source,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class AppSetting(db.Model):
+    __tablename__ = "app_settings"
+
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "key": self.key,
+            "value": self.value,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -150,4 +176,48 @@ class AuditLog(db.Model):
             "action": self.action,
             "details": self.details,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class PlaybookApproval(db.Model):
+    """Solicitud de ejecución con aprobación 4-eyes."""
+
+    __tablename__ = "playbook_approvals"
+
+    id = db.Column(db.Integer, primary_key=True)
+    playbook_id = db.Column(db.String(50), nullable=False)
+    params_json = db.Column(db.Text, nullable=False, default="{}")
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    # pending | approved | rejected | executed | failed
+    requested_by = db.Column(db.String(80), nullable=False)
+    requested_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    approved_by = db.Column(db.String(80))
+    approved_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    result_json = db.Column(db.Text)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+    resolved_at = db.Column(db.DateTime)
+
+    def to_dict(self) -> dict:
+        import json
+
+        try:
+            params = json.loads(self.params_json or "{}")
+        except json.JSONDecodeError:
+            params = {}
+        try:
+            result = json.loads(self.result_json) if self.result_json else None
+        except json.JSONDecodeError:
+            result = None
+        return {
+            "id": self.id,
+            "playbook_id": self.playbook_id,
+            "params": params,
+            "status": self.status,
+            "requested_by": self.requested_by,
+            "approved_by": self.approved_by,
+            "result": result,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
         }

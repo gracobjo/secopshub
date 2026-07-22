@@ -36,6 +36,20 @@ def create_app(config_class=Config):
     db.init_app(app)
     jwt.init_app(app)
 
+    if app.config.get("AUTH_COOKIE_MODE"):
+        app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
+        app.config["JWT_COOKIE_CSRF_PROTECT"] = False
+        app.config["JWT_ACCESS_COOKIE_NAME"] = app.config.get(
+            "JWT_ACCESS_COOKIE_NAME", "secops_access"
+        )
+        app.config["JWT_REFRESH_COOKIE_NAME"] = app.config.get(
+            "JWT_REFRESH_COOKIE_NAME", "secops_refresh"
+        )
+        app.config["JWT_COOKIE_SECURE"] = app.config.get("JWT_COOKIE_SECURE", False)
+        app.config["JWT_COOKIE_SAMESITE"] = app.config.get("JWT_COOKIE_SAMESITE", "Lax")
+    else:
+        app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+
     from app.routes.auth import auth_bp
     from app.routes.incidents import incidents_bp
     from app.routes.iocs import iocs_bp
@@ -45,8 +59,12 @@ def create_app(config_class=Config):
     from app.routes.integrations import integrations_bp
     from app.routes.frontend import frontend_bp
     from app.routes.health import health_bp
+    from app.routes.users import users_bp
+    from app.routes.settings import settings_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(users_bp, url_prefix="/api/users")
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
     app.register_blueprint(incidents_bp, url_prefix="/api/incidents")
     app.register_blueprint(iocs_bp, url_prefix="/api/iocs")
     app.register_blueprint(vulns_bp, url_prefix="/api/vulnerabilities")
@@ -62,15 +80,23 @@ def create_app(config_class=Config):
 
     @app.after_request
     def _log_request(response):
-        if request.path.startswith("/api/") or request.path == "/health":
-            duration = (time.perf_counter() - getattr(g, "_start", time.perf_counter())) * 1000
+        if request.path.startswith("/api/") or request.path in ("/health", "/metrics"):
+            duration = time.perf_counter() - getattr(g, "_start", time.perf_counter())
             logger.info(
                 "%s %s -> %s (%.1fms)",
                 request.method,
                 request.path,
                 response.status_code,
-                duration,
+                duration * 1000,
             )
+            try:
+                from app.services.metrics import observe_request
+
+                observe_request(
+                    request.method, request.path, response.status_code, duration
+                )
+            except Exception:
+                pass
         return response
 
     with app.app_context():

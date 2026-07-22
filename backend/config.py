@@ -23,6 +23,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "8"))
     )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "30"))
+    )
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///secops_hub.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WEBHOOK_API_KEY = os.getenv("WEBHOOK_API_KEY", _DEV_WEBHOOK_KEY)
@@ -69,6 +72,36 @@ class Config:
     KEV_SYNC_ON_STARTUP = os.getenv("KEV_SYNC_ON_STARTUP", "false").lower() == "true"
     _kev_limit = os.getenv("KEV_SYNC_LIMIT")
     KEV_SYNC_LIMIT = int(_kev_limit) if _kev_limit else None
+
+    # LDAP (opcional)
+    LDAP_ENABLED = os.getenv("LDAP_ENABLED", "false").lower() == "true"
+    LDAP_SERVER = os.getenv("LDAP_SERVER")
+    LDAP_BASE_DN = os.getenv("LDAP_BASE_DN")
+    LDAP_USER_DN_TEMPLATE = os.getenv(
+        "LDAP_USER_DN_TEMPLATE", "uid={username},{base_dn}"
+    )
+    LDAP_EMAIL_ATTR = os.getenv("LDAP_EMAIL_ATTR", "mail")
+    LDAP_DEFAULT_ROLE = os.getenv("LDAP_DEFAULT_ROLE", "analyst")
+
+    # P4 — cookies, 4-eyes, OIDC
+    AUTH_COOKIE_MODE = os.getenv("AUTH_COOKIE_MODE", "false").lower() == "true"
+    JWT_COOKIE_SECURE = os.getenv("JWT_COOKIE_SECURE", "false").lower() == "true"
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
+    JWT_ACCESS_COOKIE_NAME = os.getenv("JWT_ACCESS_COOKIE_NAME", "secops_access")
+    JWT_REFRESH_COOKIE_NAME = os.getenv("JWT_REFRESH_COOKIE_NAME", "secops_refresh")
+    PLAYBOOK_FOUR_EYES = os.getenv("PLAYBOOK_FOUR_EYES", "true").lower() == "true"
+
+    OIDC_ENABLED = os.getenv("OIDC_ENABLED", "false").lower() == "true"
+    OIDC_ISSUER = os.getenv("OIDC_ISSUER")  # ej. https://login.microsoftonline.com/{tenant}/v2.0
+    OIDC_CLIENT_ID = os.getenv("OIDC_CLIENT_ID")
+    OIDC_CLIENT_SECRET = os.getenv("OIDC_CLIENT_SECRET")
+    OIDC_REDIRECT_URI = os.getenv(
+        "OIDC_REDIRECT_URI", "http://localhost:5000/api/auth/oidc/callback"
+    )
+    OIDC_SCOPES = os.getenv("OIDC_SCOPES", "openid profile email")
+    OIDC_DEFAULT_ROLE = os.getenv("OIDC_DEFAULT_ROLE", "analyst")
+    OIDC_ADMIN_GROUP = os.getenv("OIDC_ADMIN_GROUP")
+    OIDC_FRONTEND_REDIRECT = os.getenv("OIDC_FRONTEND_REDIRECT", "http://localhost:5173")
 
 
 def validate_production_config(config: type[Config] | Config) -> None:

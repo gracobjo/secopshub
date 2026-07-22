@@ -5,7 +5,8 @@ from flask import Blueprint, current_app, jsonify, request
 
 from app import db
 from app.models import IOC, Incident
-from app.utils.helpers import get_webhook_api_key
+from app.utils.helpers import get_webhook_api_key as _header_key
+from app.services.settings_store import get_webhook_api_key as get_expected_webhook_key
 
 webhooks_bp = Blueprint("webhooks", __name__)
 logger = logging.getLogger("secops.webhook")
@@ -47,8 +48,8 @@ def _resolve_idempotency_key(data: dict) -> str | None:
 
 @webhooks_bp.route("/alert", methods=["POST"])
 def receive_alert():
-    api_key = get_webhook_api_key()
-    expected_key = current_app.config.get("WEBHOOK_API_KEY")
+    api_key = _header_key()
+    expected_key = get_expected_webhook_key()
 
     if not api_key or api_key != expected_key:
         return jsonify({"error": "API Key inválida o ausente"}), 401
