@@ -236,6 +236,14 @@ export default function DashboardPage() {
             selectedKpi === 'kev_vulnerabilities' ? vulnerabilities : undefined
           }
           onClose={() => setSelectedKpi(null)}
+          onIncidentsChange={(next) => {
+            const filtered =
+              selectedKpi === 'active_alerts'
+                ? next.filter((i) => i.status === 'open' || i.status === 'investigating')
+                : next;
+            setIncidents(filtered);
+            api.get<DashboardStats>('/incidents/stats').then(({ data }) => setStats(data));
+          }}
         />
       )}
     </div>

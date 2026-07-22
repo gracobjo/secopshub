@@ -44,13 +44,15 @@ Estado: `GET /api/integrations/status`
 - [ ] Desplegar SecOps Hub en servidor accesible desde la red (no localhost)
 - [x] **Reverse proxy** Nginx/Caddy — ver [`deploy/`](../deploy/README.md)
 - [ ] Certificado TLS (Let's Encrypt o CA interna)
-- [ ] Generar `SECRET_KEY`, `JWT_SECRET_KEY` y `WEBHOOK_API_KEY` reales (≥ 32 caracteres)
+- [x] Validación de `SECRET_KEY`, `JWT_SECRET_KEY` y `WEBHOOK_API_KEY` en producción (≥ 32 caracteres)
 - [ ] Reglas de firewall: solo SIEM y analistas (VLAN/VPN); nada desde Internet abierto
-- [ ] Migrar de SQLite a PostgreSQL (`DATABASE_URL`)
+- [x] Driver PostgreSQL (`psycopg`) + `DATABASE_URL=postgresql+psycopg://...`
 - [x] Gunicorn + systemd (`deploy/systemd/secops-hub.service`)
-- [ ] Backup PostgreSQL programado
+- [x] Bootstrap admin sin seed (`BOOTSTRAP_ADMIN_*` o `scripts/create_admin.py`)
+- [x] CORS restrictivo (`CORS_ORIGINS`)
+- [x] PATCH de incidentes (`status`, `assigned_to`)
+- [ ] Backup PostgreSQL programado (checklist en `deploy/README.md`)
 
-**Implementado en repo:** `deploy/nginx/secops-hub.conf`, `deploy/caddy/Caddyfile`, `backend/wsgi.py`, rate limiting webhook.
 
 ### Fase 2 — Conectar el SIEM (ingesta real)
 

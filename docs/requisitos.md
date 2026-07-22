@@ -104,6 +104,15 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 | **Criterio de aceptación** | Lista ordenada por fecha con severidad y estado |
 | **Implementación** | `GET /api/incidents`, modelo `Incident` |
 
+### RF-09b — Actualización de incidentes
+
+| ID | RF-09b |
+|----|--------|
+| **Descripción** | Un analista o admin puede cambiar el estado y la asignación de un incidente |
+| **Prioridad** | Alta |
+| **Criterio de aceptación** | `PATCH` acepta `status` ∈ {open, investigating, resolved, closed} y `assigned_to` de un usuario existente; escribe audit log |
+| **Implementación** | `PATCH /api/incidents/<id>`, `KpiDetailModal` |
+
 ### RF-10 — Enriquecimiento de IOCs
 
 | ID | RF-10 |
@@ -284,13 +293,13 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 | RF | Módulo backend | Módulo frontend |
 |----|----------------|-----------------|
 | RF-01–05 | `routes/auth.py` | `AuthContext`, `LoginPage` |
-| RF-06–09 | `routes/incidents.py` | `DashboardPage` |
+| RF-06–09b | `routes/incidents.py` | `DashboardPage`, `KpiDetailModal` |
 | RF-10–11 | `routes/iocs.py`, `ioc_enrichment.py` | `IOCsPage` |
 | RF-12 | `routes/vulns.py` | `VulnerabilitiesPage` |
 | RF-13–14 | `routes/playbooks.py` | `PlaybooksPage` |
 | RF-15 | `routes/webhooks.py` | Documentado en Playbooks |
 | RF-16 | — | `ProtectedRoute`, `api.ts` |
-| RF-17 | `services/seed.py` | — |
+| RF-17 | `services/seed.py`, `services/bootstrap.py` | — |
 
 ---
 

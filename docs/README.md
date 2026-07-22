@@ -21,4 +21,5 @@
 
 - **Aplicación (desarrollo):** http://localhost:5173
 - **API + build estático:** http://localhost:5000
-- **Credenciales demo:** `admin` / `admin123` · `analyst` / `analyst123`
+- **Credenciales demo:** `admin` / `admin123` · `analyst` / `analyst123` (solo con `ENABLE_SEED=true`)
+- **Producción sin seed:** `BOOTSTRAP_ADMIN_*` o `python scripts/create_admin.py`

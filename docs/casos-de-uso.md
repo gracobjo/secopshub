@@ -296,6 +296,33 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 
 ---
 
+## CU-11 — Actualizar estado y asignación de incidente
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin, Analyst |
+| **Disparador** | Modal de detalle KPI en el dashboard |
+| **Precondiciones** | Usuario autenticado; incidente existente |
+
+### Flujo principal
+
+1. Usuario abre KPI «Alertas activas» o «Total incidentes»
+2. Cambia `status` y/o `assigned_to` en la fila del incidente
+3. Pulsa **Guardar**
+4. Frontend llama `PATCH /api/incidents/<id>`
+5. Backend valida estado permitido y que el username exista (si se asigna)
+6. Persiste cambios, escribe audit log y responde 200
+7. UI refresca KPIs; si el incidente deja de estar activo, sale de «Alertas activas»
+
+### Implementación
+
+| Capa | Archivo |
+|------|---------|
+| Backend | `app/routes/incidents.py` → `update_incident()` |
+| Frontend | `KpiDetailModal.tsx`, `services/incidents.ts` |
+
+---
+
 ## 2. Resumen de casos de uso
 
 | ID | Caso de uso | Actor | Implementado |
@@ -310,6 +337,7 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | CU-08 | Recibir webhook | Sistema externo | ✓ |
 | CU-09 | Registrar usuario | Admin | ✓ (solo API) |
 | CU-10 | Expiración de sesión | Admin, Analyst | ✓ |
+| CU-11 | Actualizar incidente | Admin, Analyst | ✓ |
 
 ---
 
@@ -325,3 +353,4 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | CU-07 Playbooks | ✓ | | |
 | CU-08 Webhook | | | ✓ |
 | CU-09 Registro | ✓ | | |
+| CU-11 Actualizar incidente | ✓ | ✓ | |

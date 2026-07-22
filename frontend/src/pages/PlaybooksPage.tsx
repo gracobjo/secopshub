@@ -133,7 +133,7 @@ export default function PlaybooksPage() {
         <code className="block p-3 rounded-lg bg-slate-900 text-emerald-400 text-sm font-mono">
           POST /api/webhooks/alert
           <br />
-          Header: X-API-Key: secops-webhook-key-dev
+          Header: X-API-Key: &lt;WEBHOOK_API_KEY&gt;
         </code>
       </div>
     </div>

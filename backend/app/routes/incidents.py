@@ -1,17 +1,21 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt, jwt_required
-from io import BytesIO
 from sqlalchemy import func
 
 from app import db
-from app.models import AuditLog, Incident, IOC, Vulnerability
+from app.models import AuditLog, Incident, IOC, User, Vulnerability
 from app.services.incident_report_data import build_report_context
 from app.services.pdf_report import generate_incident_pdf
+from app.utils.decorators import analyst_or_admin_required
+from app.utils.helpers import log_action
 
 incidents_bp = Blueprint("incidents", __name__)
+
+ALLOWED_STATUSES = frozenset({"open", "investigating", "resolved", "closed"})
 
 
 @incidents_bp.route("", methods=["GET"])
@@ -61,7 +65,7 @@ def dashboard_stats():
         hourly_events.append(
             {
                 "hour": hour_start.strftime("%H:00"),
-                "events": count + (i % 3),
+                "events": count,
             }
         )
 
@@ -98,6 +102,84 @@ def dashboard_stats():
 @jwt_required()
 def get_incident(incident_id):
     incident = Incident.query.get_or_404(incident_id)
+    return jsonify(incident.to_dict()), 200
+
+
+@incidents_bp.route("/<int:incident_id>", methods=["PATCH"])
+@jwt_required()
+@analyst_or_admin_required
+def update_incident(incident_id):
+    """Actualiza estado y/o asignación de un incidente."""
+    incident = Incident.query.get_or_404(incident_id)
+    data = request.get_json() or {}
+
+    if not data:
+        return jsonify({"error": "No se enviaron campos para actualizar"}), 400
+
+    unknown = set(data.keys()) - {"status", "assigned_to"}
+    if unknown:
+        return (
+            jsonify(
+                {
+                    "error": "Campos no permitidos",
+                    "unknown": sorted(unknown),
+                    "allowed": ["status", "assigned_to"],
+                }
+            ),
+            400,
+        )
+
+    changes: list[str] = []
+
+    if "status" in data:
+        status = (data.get("status") or "").strip().lower()
+        if status not in ALLOWED_STATUSES:
+            return (
+                jsonify(
+                    {
+                        "error": "Estado inválido",
+                        "allowed": sorted(ALLOWED_STATUSES),
+                    }
+                ),
+                400,
+            )
+        if status != incident.status:
+            changes.append(f"status: {incident.status} → {status}")
+            incident.status = status
+
+    if "assigned_to" in data:
+        raw = data.get("assigned_to")
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            new_assignee = None
+        else:
+            new_assignee = str(raw).strip()
+            user = User.query.filter_by(username=new_assignee).first()
+            if not user:
+                return (
+                    jsonify(
+                        {
+                            "error": f"Usuario '{new_assignee}' no existe",
+                        }
+                    ),
+                    400,
+                )
+        if new_assignee != incident.assigned_to:
+            prev = incident.assigned_to or "—"
+            nxt = new_assignee or "—"
+            changes.append(f"assigned_to: {prev} → {nxt}")
+            incident.assigned_to = new_assignee
+
+    if not changes:
+        return jsonify(incident.to_dict()), 200
+
+    incident.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    log_action(
+        "Incidente actualizado",
+        f"INC-{incident.id}: {'; '.join(changes)}",
+    )
+
     return jsonify(incident.to_dict()), 200
 
 

@@ -78,6 +78,7 @@ Abre `http://localhost:5173` e inicia sesión con las credenciales de prueba.
 
 ### Operaciones
 - `GET /api/incidents` — Listado de incidentes
+- `PATCH /api/incidents/<id>` — Actualizar estado y asignación (`status`, `assigned_to`)
 - `GET /api/incidents/stats` — KPIs y datos del dashboard
 - `GET /api/iocs` — Listado de IOCs
 - `POST /api/iocs/enrich` — Enriquecimiento de IOCs (simulado)
@@ -108,6 +109,13 @@ SECRET_KEY=tu-clave-secreta
 JWT_SECRET_KEY=tu-clave-jwt
 WEBHOOK_API_KEY=tu-api-key-webhook
 DATABASE_URL=sqlite:///secops_hub.db
+# Producción: postgresql+psycopg://secops:pass@localhost:5432/secops_hub
+CORS_ORIGINS=http://localhost:5173
+ENABLE_SEED=true
+
+# Sin seed: bootstrap del primer admin
+# BOOTSTRAP_ADMIN_PASSWORD=...
+# o: python scripts/create_admin.py
 
 # Opcional — activar enriquecimiento real
 ABUSEIPDB_API_KEY=

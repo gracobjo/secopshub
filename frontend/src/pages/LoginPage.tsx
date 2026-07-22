@@ -82,8 +82,7 @@ export default function LoginPage() {
           </button>
 
           <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-700">
-            <p>Demo: admin / admin123</p>
-            <p>Demo: analyst / analyst123</p>
+            <p>Con datos demo (ENABLE_SEED=true): admin / admin123</p>
           </div>
         </form>
       </div>

@@ -53,13 +53,30 @@ pip install -r requirements.txt
 python run.py
 ```
 
-Variables de entorno opcionales (`.env` en `backend/`):
+Variables de entorno (`.env` en `backend/`):
 
 ```env
 SECRET_KEY=clave-secreta-flask-min-32-chars
 JWT_SECRET_KEY=clave-jwt-min-32-chars
 WEBHOOK_API_KEY=clave-webhook-produccion
 DATABASE_URL=sqlite:///secops_hub.db
+# Producción: postgresql+psycopg://secops:pass@localhost:5432/secops_hub
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+ENABLE_SEED=true
+FLASK_ENV=development
+
+# Sin seed: primer admin automático (password ≥ 12 chars)
+# BOOTSTRAP_ADMIN_USERNAME=admin
+# BOOTSTRAP_ADMIN_EMAIL=admin@secops.local
+# BOOTSTRAP_ADMIN_PASSWORD=...
+```
+
+Con `FLASK_ENV=production` el arranque **falla** si las claves son las de demo o tienen menos de 32 caracteres, o si `CORS_ORIGINS` es `*`.
+
+Crear admin sin seed:
+
+```bash
+python scripts/create_admin.py --username admin --email admin@secops.local
 ```
 
 ### Frontend
@@ -78,11 +95,12 @@ npm run preview  # Previsualizar build
 
 El patrón **factory** en `app/__init__.py`:
 
-1. Carga configuración desde `config.py`
-2. Inicializa extensiones: `CORS`, `SQLAlchemy`, `JWTManager`
-3. Registra blueprints bajo `/api/*`
-4. Registra blueprint `frontend` para servir SPA estática
-5. Ejecuta `db.create_all()` y `seed_database()` al arrancar
+1. Valida secretos si `FLASK_ENV=production` (`validate_production_config`)
+2. Carga configuración desde `config.py`
+3. Inicializa extensiones: `CORS` (orígenes desde `CORS_ORIGINS`), `SQLAlchemy`, `JWTManager`
+4. Registra blueprints bajo `/api/*`
+5. Registra blueprint `frontend` para servir SPA estática
+6. Ejecuta `db.create_all()`; si `ENABLE_SEED` → `seed_database()`, si no → `bootstrap_admin_if_needed()`
 
 ### Blueprints registrados
 
@@ -107,13 +125,17 @@ Ver diagrama ERD en [diagramas-uml.md](diagramas-uml.md).
 - `AuditLog.user_id` → `User.id` (FK nullable)
 - Resto de entidades son independientes en esta versión
 
-### Seed automático
+### Seed automático y bootstrap
 
-`services/seed.py` → `seed_database()` crea datos demo si la tabla `users` está vacía. Para resetear:
+`services/seed.py` → `seed_database()` crea datos demo si la tabla `users` está vacía y `ENABLE_SEED=true`.
+
+Con `ENABLE_SEED=false`, `services/bootstrap.py` crea el primer admin desde `BOOTSTRAP_ADMIN_*` (o usar `scripts/create_admin.py`).
+
+Para resetear en desarrollo:
 
 ```bash
 # Eliminar la BD y reiniciar
-del backend\instance\secops_hub.db
+rm -f backend/instance/secops_hub.db backend/secops_hub.db
 python run.py
 ```
 
@@ -160,10 +182,14 @@ POST /api/auth/register       [JWT admin] { username, email, password, role? }
 ### Incidentes
 
 ```
-GET /api/incidents                      [JWT] ?status=active
-GET /api/incidents/<id>                 [JWT]
-GET /api/incidents/stats                [JWT] → KPIs + gráficos + audit feed
-GET /api/incidents/<id>/report/pdf      [JWT] → Informe PDF ejecutivo
+GET   /api/incidents                      [JWT] ?status=active
+GET   /api/incidents/<id>                 [JWT]
+PATCH /api/incidents/<id>                 [JWT analyst|admin]
+      { status?, assigned_to? }
+      status: open | investigating | resolved | closed
+      assigned_to: username existente o null/"" para desasignar
+GET   /api/incidents/stats                [JWT] → KPIs + gráficos + audit feed
+GET   /api/incidents/<id>/report/pdf      [JWT] → Informe PDF ejecutivo
 ```
 
 ### IOCs

@@ -68,7 +68,31 @@ SECRET_KEY=<generar: openssl rand -hex 32>
 JWT_SECRET_KEY=<generar: openssl rand -hex 32>
 WEBHOOK_API_KEY=<generar: openssl rand -hex 32>
 
-DATABASE_URL=postgresql://secops:PASSWORD@localhost:5432/secops_hub
+# Driver psycopg3 (incluido en requirements.txt)
+DATABASE_URL=postgresql+psycopg://secops:PASSWORD@localhost:5432/secops_hub
+
+# Orígenes del frontend (nunca *)
+CORS_ORIGINS=https://secops.empresa.local
+
+# Primer admin (solo si la BD está vacía)
+BOOTSTRAP_ADMIN_USERNAME=admin
+BOOTSTRAP_ADMIN_EMAIL=admin@secops.local
+BOOTSTRAP_ADMIN_PASSWORD=<minimo-12-caracteres>
+```
+
+El arranque **falla** si `FLASK_ENV=production` y las claves son las de demo o tienen menos de 32 caracteres.
+
+### Crear administrador sin seed
+
+Opción A — variables de entorno al arrancar (arriba).
+
+Opción B — CLI:
+
+```bash
+cd /opt/secops-hub/backend
+source venv/bin/activate
+python scripts/create_admin.py --username admin --email admin@secops.local
+# pide la contraseña de forma interactiva
 ```
 
 Generar claves (≥ 32 caracteres):
@@ -186,9 +210,20 @@ Caddy: ver `deploy/caddy/Caddyfile`. Rate limiting incluido en Nginx; en Caddy r
 
 ## Backup PostgreSQL
 
+Checklist mínimo:
+
+1. Usuario dedicado `secops` con permiso solo sobre `secops_hub`
+2. Dump diario comprimido fuera del servidor de app
+3. Probar restauración al menos una vez al mes
+4. Retención ≥ 7 días (mejor 30)
+
 ```bash
 # Cron diario (ejemplo)
-0 2 * * * pg_dump -U secops secops_hub | gzip > /backup/secops_$(date +\%Y\%m\%d).sql.gz
+mkdir -p /backup/secops
+0 2 * * * pg_dump -U secops secops_hub | gzip > /backup/secops/secops_$(date +\%Y\%m\%d).sql.gz
+
+# Restauración de prueba
+gunzip -c /backup/secops/secops_YYYYMMDD.sql.gz | psql -U secops secops_hub_restore
 ```
 
 ---

@@ -1,4 +1,18 @@
 import api from './api';
+import type { Incident } from '../types';
+
+export interface UpdateIncidentPayload {
+  status?: string;
+  assigned_to?: string | null;
+}
+
+export async function updateIncident(
+  incidentId: number,
+  payload: UpdateIncidentPayload
+): Promise<Incident> {
+  const { data } = await api.patch<Incident>(`/incidents/${incidentId}`, payload);
+  return data;
+}
 
 export async function downloadIncidentReport(incidentId: number): Promise<void> {
   const response = await api.get(`/incidents/${incidentId}/report/pdf`, {

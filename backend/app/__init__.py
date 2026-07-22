@@ -3,13 +3,15 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 
-from config import Config
+from config import Config, validate_production_config
 
 db = SQLAlchemy()
 jwt = JWTManager()
 
 
 def create_app(config_class=Config):
+    validate_production_config(config_class)
+
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -18,7 +20,12 @@ def create_app(config_class=Config):
 
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    cors_origins = app.config.get("CORS_ORIGINS") or ["http://localhost:5173"]
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": cors_origins}},
+        supports_credentials=True,
+    )
     db.init_app(app)
     jwt.init_app(app)
 
@@ -42,9 +49,12 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        from app.services.bootstrap import bootstrap_admin_if_needed
         from app.services.seed import seed_database
 
         if app.config.get("ENABLE_SEED", True):
             seed_database()
+        else:
+            bootstrap_admin_if_needed()
 
     return app
