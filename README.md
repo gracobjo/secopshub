@@ -29,15 +29,19 @@ Cuatro direcciones de comunicación dentro de la red corporativa:
 
 Ver [Integración en red](docs/integracion-red.md) para Splunk/QRadar y [Despliegue producción](deploy/README.md) para Nginx/Caddy + TLS.
 
-## Estructura
+## Estructura del proyecto (visión sencilla)
 
 ```
 secopsHub/
-├── backend/          # API REST Flask (dev :5000, prod vía Gunicorn)
-├── frontend/         # SPA React (dev :5173, prod → dist/)
-└── deploy/           # Nginx, Caddy, systemd, scripts build
+├── frontend/     # Pantallas de la consola (lo que ve el analista)
+├── backend/      # Cerebro en Python (alertas, IOCs, playbooks)
+├── docs/         # Manuales, glosario y diagramas
+├── formacion/    # Notebooks de clase (prácticas Jupyter)
+├── deploy/       # Cómo instalarlo en un servidor real
+└── scripts/      # Utilidades de apoyo / demos
 ```
 
+**Guía para personas no técnicas:** [docs/guia-carpetas.md](docs/guia-carpetas.md) — explica cada carpeta con analogías y sin jerga.
 ## Credenciales de prueba
 
 | Usuario | Contraseña | Rol |
@@ -163,6 +167,7 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | Documento | Contenido |
 |-----------|-----------|
 | [Manual de usuario](docs/manual-usuario.md) | Guía de uso de la consola SOC |
+| [Guía de carpetas](docs/guia-carpetas.md) | Qué hay en cada carpeta (lenguaje sencillo) |
 | [Manual de laboratorio](docs/manual-laboratorio.md) | Ejercicios prácticos paso a paso |
 | [Manual de desarrollador](docs/manual-desarrollador.md) | Arquitectura, API y despliegue |
 | [Requisitos](docs/requisitos.md) | RF/RNF y trazabilidad |

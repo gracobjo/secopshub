@@ -62,3 +62,9 @@ Los notebooks **reproducen la lógica esencial** de:
 - `backend/app/services/playbook_runners.py` (modo simulado)
 
 Sin necesidad de arrancar Flask para las prácticas 01–03.
+
+### Nota sobre la celda opcional del notebook 02
+
+No uses `from app.services...` con el kernel de `formacion/.venv`: al importar el paquete `app` se carga Flask y fallará (`ModuleNotFoundError: flask_jwt_extended`).
+
+El notebook carga `backend/app/services/ioc_enrichment.py` **como fichero** (via `importlib`), sin necesitar las dependencias del backend.
