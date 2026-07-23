@@ -2,6 +2,8 @@
 
 Plataforma web full-stack de operaciones de ciberseguridad con autenticación JWT, RBAC y consola SOC en dark mode.
 
+Prototipo educativo orientado a la **automatización de operaciones de ciberseguridad con Python** (triaje, incidentes, playbooks). Contexto formativo en [docs/proyecto-institucional.md](docs/proyecto-institucional.md).
+
 ## Stack
 
 | Capa | Tecnologías |
@@ -169,6 +171,7 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | [Runbook operativo](docs/runbook-operacion.md) | Docker, MFA, LDAP, rotación webhook, métricas |
 | [Laboratorio de infraestructura](docs/laboratorio-infraestructura.md) | Montar lab desde cero (Hub + Wazuh + webhook) |
 | [Despliegue producción](deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall |
+| [Origen formativo](docs/proyecto-institucional.md) | Contexto educativo y objetivos del prototipo |
 
 ## Licencia
 

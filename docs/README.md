@@ -4,6 +4,7 @@
 
 | Documento | Descripción | Audiencia |
 |-----------|-------------|-----------|
+| [Contexto formativo](proyecto-institucional.md) | Objetivos educativos del prototipo SOC | Todos, formadores |
 | [Manual de usuario](manual-usuario.md) | Guía de uso de la consola SOC | Analistas, administradores |
 | [Manual de laboratorio](manual-laboratorio.md) | Ejercicios prácticos paso a paso (uso de la consola) | Estudiantes, formación SOC |
 | [Laboratorio de infraestructura](laboratorio-infraestructura.md) | Montar desde cero Hub + SIEM lab (Wazuh) + webhook sin stack corporativo | DevSecOps, formadores |

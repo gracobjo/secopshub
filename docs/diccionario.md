@@ -2,7 +2,7 @@
 
 Glosario alfabético de conceptos, acrónimos, productos y términos técnicos que aparecen en la plataforma, la documentación y el ecosistema SOC.
 
-Cada entrada incluye **definición** y **ejemplo** en el contexto de SecOps Hub.
+Cada entrada incluye **definición** y **ejemplo** en el contexto de SecOps Hub (código y docs actuales: auth MFA/OIDC/LDAP, four-eyes, Docker, métricas, threat intel live/simulado).
 
 ---
 
@@ -68,7 +68,31 @@ Registro cronológico de acciones realizadas por usuarios o el sistema (enriquec
 
 Servicio de reputación de direcciones IP que reporta abusos (spam, ataques, escaneos).
 
-**Ejemplo:** Al enriquecer una IP, SecOps Hub muestra datos de AbuseIPDB (simulados en demo). En producción consultaría la API real con *abuse confidence score*.
+**Ejemplo:** Con `ABUSEIPDB_API_KEY` el enriquecimiento consulta la API real (`enrichment_mode: live`). Sin clave, usa simulador determinista.
+
+---
+
+### Alembic
+
+Herramienta de migraciones de esquema para SQLAlchemy. En SecOps Hub las revisiones viven en `backend/migrations/`.
+
+**Ejemplo:** En producción: `alembic upgrade head` crea/actualiza tablas (`users`, `incidents`, `playbook_approvals`, etc.).
+
+---
+
+### AppSetting
+
+Tabla clave-valor (`app_settings`) para ajustes persistentes que priorizan sobre `.env` (p. ej. `WEBHOOK_API_KEY` rotada).
+
+**Ejemplo:** Tras `POST /api/settings/webhook-key/rotate`, la nueva clave se guarda en `AppSetting` y el webhook la usa de inmediato.
+
+---
+
+### auth_source
+
+Origen de la cuenta de usuario en el modelo `User`: `local`, `ldap` u `oidc`.
+
+**Ejemplo:** Un analista que entra por Microsoft Entra queda con `auth_source=oidc`; el admin demo del seed es `local`.
 
 ---
 
@@ -78,7 +102,7 @@ Servicio de reputación de direcciones IP que reporta abusos (spam, ataques, esc
 
 Formato estándar para enviar un JWT en la cabecera HTTP: `Authorization: Bearer <token>`.
 
-**Ejemplo:** Tras el login, Axios añade automáticamente `Authorization: Bearer eyJhbGci...` a cada petición.
+**Ejemplo:** Tras el login, Axios añade `Authorization: Bearer eyJhbGci...`. Con `AUTH_COOKIE_MODE=true` el token también puede ir en cookie httpOnly.
 
 ---
 
@@ -92,9 +116,17 @@ Módulo que agrupa rutas relacionadas en el backend Flask.
 
 ### Bloqueo (IOC)
 
-Marcar un indicador de compromiso como bloqueado en SecOps Hub (`blocked: true`). En producción debería propagarse al firewall.
+Marcar un indicador de compromiso como bloqueado (`blocked: true`). En IPs exige confirmación y dispara el playbook `block_ip` (live o simulado).
 
-**Ejemplo:** Tras veredicto `malicious`, el analista pulsa *Bloquear* → el KPI *IPs bloqueadas* sube en 1.
+**Ejemplo:** Tras veredicto `malicious`, el analista confirma *Bloquear* → KPI *IPs bloqueadas* +1 y, si hay firewall configurado, llamada real.
+
+---
+
+### Bootstrap admin
+
+Creación del primer administrador cuando la BD está vacía y `ENABLE_SEED=false`, vía variables `BOOTSTRAP_ADMIN_*` o el script `scripts/create_admin.py`.
+
+**Ejemplo:** En Docker Compose de producción no hay usuarios demo; el arranque crea el admin definido en `BOOTSTRAP_ADMIN_USERNAME` / `PASSWORD` (≥12 caracteres).
 
 ---
 
@@ -116,11 +148,27 @@ Entidad que emite certificados digitales TLS para HTTPS.
 
 ---
 
+### Caddy
+
+Servidor web / reverse proxy con TLS automático (alternativa a Nginx). Configuración en `deploy/caddy/Caddyfile`.
+
+**Ejemplo:** En bare-metal, Caddy escucha en `:443`, sirve `frontend/dist` y proxifica `/api/*` a Gunicorn en `127.0.0.1:5000`.
+
+---
+
 ### CISA
 
 Cybersecurity and Infrastructure Security Agency (EE.UU.). Publica el catálogo **KEV** de vulnerabilidades explotadas activamente.
 
-**Ejemplo:** Las CVEs marcadas como KEV en SecOps Hub simulan entradas de ese catálogo (p. ej. `CVE-2024-3400`).
+**Ejemplo:** `POST /api/vulnerabilities/sync-kev` (admin) descarga el feed oficial CISA y actualiza CVEs; también hay seed demo con entradas KEV.
+
+---
+
+### Confirm (confirmación)
+
+Flag JSON obligatorio (`confirm: true`) para acciones destructivas: ejecutar playbooks sensibles o bloquear una IP IOC.
+
+**Ejemplo:** `POST /api/playbooks/run` con `isolate_host` sin `confirm` → error 400; con confirmación → ejecución o cola four-eyes.
 
 ---
 
@@ -137,6 +185,14 @@ Interfaz web central donde analistas monitorizan, investigan y responden a incid
 Acción del EDR que aísla un endpoint de la red limitando sus conexiones sin apagarlo.
 
 **Ejemplo:** Playbook *Aislar Host* en CrowdStrike ejecutaría la acción `contain` sobre el `device_id` del PC infectado.
+
+---
+
+### Cookies httpOnly (`AUTH_COOKIE_MODE`)
+
+Modo de autenticación en el que access/refresh JWT se envían también como cookies httpOnly (`secops_access` / `secops_refresh`), con `withCredentials` en el SPA.
+
+**Ejemplo:** Con `AUTH_COOKIE_MODE=true` el frontend no depende de tokens en `localStorage`; el navegador envía la cookie automáticamente.
 
 ---
 
@@ -238,6 +294,22 @@ Navegación desde un resumen (KPI) al detalle (listado de registros).
 
 ---
 
+### Deduplicación (webhook)
+
+Evita incidentes duplicados: cabecera `Idempotency-Key` / campo `external_id`, o ventana temporal por título+source+IP (`WEBHOOK_DEDUP_WINDOW_MINUTES`, default 15).
+
+**Ejemplo:** Splunk reenvía la misma alerta dos veces en 5 minutos → SecOps Hub reutiliza el incidente existente.
+
+---
+
+### Docker Compose
+
+Orquestación de contenedores: PostgreSQL, backend (Gunicorn) y frontend (Nginx). El perfil `observability` añade Prometheus y Grafana.
+
+**Ejemplo:** `docker compose up -d` levanta el Hub; `docker compose --profile observability up -d` activa métricas.
+
+---
+
 ## E
 
 ### EDR (Endpoint Detection and Response)
@@ -248,11 +320,27 @@ Solución que monitoriza y responde a amenazas en endpoints (PCs, servidores).
 
 ---
 
+### enrichment_mode
+
+Campo de la respuesta de `POST /api/iocs/enrich`: `live` si AbuseIPDB y/o VirusTotal respondieron en vivo; `simulated` si no hay claves o hubo fallback.
+
+**Ejemplo:** La UI de IOCs muestra badge *API en vivo* o *Modo simulado* según `enrichment_mode`.
+
+---
+
 ### Enriquecimiento (IOC)
 
-Proceso de consultar fuentes externas (VirusTotal, AbuseIPDB) para obtener contexto sobre un indicador.
+Proceso de consultar fuentes externas (VirusTotal, AbuseIPDB) para obtener contexto sobre un indicador. Orquestado en `ioc_service.py` con fallback simulado.
 
-**Ejemplo:** Pegar `203.0.113.50` en IOCs → *Enriquecer* → veredicto, score y recomendación `block` o `monitor`.
+**Ejemplo:** Pegar `203.0.113.50` → *Enriquecer* → veredicto, score, `sources_used` y recomendación `block` o `monitor`.
+
+---
+
+### ensure_schema
+
+Compatibilidad ligera al arranque: aplica `ALTER TABLE` para columnas nuevas (MFA, `external_id`, etc.) sin exigir siempre una migración completa.
+
+**Ejemplo:** Tras actualizar el código, el backend añade columnas faltantes automáticamente además de Alembic.
 
 ---
 
@@ -261,6 +349,14 @@ Proceso de consultar fuentes externas (VirusTotal, AbuseIPDB) para obtener conte
 Dispositivo final conectado a la red: portátil, PC, servidor, móvil.
 
 **Ejemplo:** *"Malware detectado en endpoint HR-042"* — el EDR reporta la estación de trabajo comprometida.
+
+---
+
+### external_id
+
+Identificador externo del incidente (SIEM) usado para idempotencia del webhook; puede venir del body (`id`, `alert_id`, `event_id`) o de la cabecera de idempotencia.
+
+**Ejemplo:** `{"title":"...","external_id":"splunk-alert-88421"}` — un reenvío con el mismo id no crea un segundo incidente.
 
 ---
 
@@ -276,9 +372,25 @@ Transferencia no autorizada de datos fuera de la organización.
 
 ### Feed (CISA KEV / auditoría)
 
-Flujo continuo de datos. *Feed KEV*: catálogo actualizado de CVEs explotadas. *Feed de auditoría*: acciones recientes en SecOps Hub.
+Flujo continuo de datos. *Feed KEV*: catálogo CISA de CVEs explotadas (sync HTTP o seed). *Feed de auditoría*: acciones recientes en SecOps Hub.
 
-**Ejemplo:** El dashboard muestra las últimas 10 entradas del feed de auditoría con usuario y timestamp.
+**Ejemplo:** El dashboard muestra las últimas entradas del feed de auditoría con usuario y timestamp.
+
+---
+
+### Four-eyes (cuatro ojos)
+
+Control de doble autorización: con `PLAYBOOK_FOUR_EYES=true`, los playbooks destructivos crean una solicitud `pending` y otro admin debe aprobar o rechazar (no el solicitante).
+
+**Ejemplo:** Admin A solicita *Aislar Host* → HTTP 202 `pending_approval` → Admin B aprueba en la cola → se ejecuta el runner.
+
+---
+
+### force_direct
+
+Parámetro opcional en `POST /api/playbooks/run` que bypasea la cola four-eyes (sigue exigiendo rol admin y `confirm=true`).
+
+**Ejemplo:** En emergencia, el admin ejecuta con `force_direct: true` y se salta la aprobación de segundo operador.
 
 ---
 
@@ -304,7 +416,15 @@ Framework web de Python usado para el backend API de SecOps Hub.
 
 API de Microsoft para administrar Azure AD, usuarios, dispositivos y seguridad.
 
-**Ejemplo:** Playbook *Revocar Usuario* en producción usaría Graph API para invalidar sesiones de `jperez@empresa.com`.
+**Ejemplo:** Playbook `revoke_user` con tenant y credenciales de aplicación invalida sesiones vía Microsoft Graph.
+
+---
+
+### Grafana
+
+Plataforma de dashboards de observabilidad. En SecOps Hub se provisiona con el perfil Docker `observability` contra Prometheus.
+
+**Ejemplo:** Dashboard en `deploy/grafana/` muestra series `secops_http_*` e incidentes abiertos.
 
 ---
 
@@ -314,7 +434,15 @@ API de Microsoft para administrar Azure AD, usuarios, dispositivos y seguridad.
 
 Huella digital fija de un fichero o dato. Se usa como IOC para detectar malware conocido.
 
-**Ejemplo:** `a1b2c3d4e5f6789012345678901234567890abcd` (SHA1) enriquecido en IOCs → tipo `sha1`, veredicto según simulación VT.
+**Ejemplo:** Hash SHA256 en IOCs → tipo `sha256` → VirusTotal live (con API key) o simulado.
+
+---
+
+### Health check (`/health`)
+
+Endpoint de liveness/readiness: comprueba la BD (`SELECT 1`). Responde `ok` o `degraded` (HTTP 503).
+
+**Ejemplo:** El reverse proxy o el orquestador consultan `/health` antes de enviar tráfico.
 
 ---
 
@@ -328,13 +456,21 @@ Equipo en la red identificado por nombre (p. ej. `WS-HR-042`, `SRV-FIN-01`).
 
 ### HTTPS / TLS
 
-Protocolo HTTP cifrado. TLS (Transport Layer Security) garantiza confidencialidad e integridad.
+Protocolo HTTP cifrado. TLS garantiza confidencialidad e integridad. En producción, obligatorio detrás de Nginx/Caddy.
 
-**Ejemplo:** En producción la API debe estar en `https://secops.empresa.local`, no en HTTP plano.
+**Ejemplo:** `https://secops.empresa.local/api/webhooks/alert` con certificado de CA interna o Let's Encrypt.
 
 ---
 
 ## I
+
+### Idempotencia (webhook)
+
+Garantía de que reenviar la misma alerta no duplica incidentes (`Idempotency-Key`, `external_id` o ventana de deduplicación).
+
+**Ejemplo:** Cabecera `Idempotency-Key: alert-88421` en dos POST → un solo incidente.
+
+---
 
 ### IDS (Intrusion Detection System)
 
@@ -346,7 +482,7 @@ Sistema que **detecta** intrusiones y genera alertas, sin bloquear tráfico auto
 
 ### Incidente
 
-Registro en SecOps Hub que representa un evento de seguridad a gestionar (título, severidad, estado, origen).
+Registro en SecOps Hub que representa un evento de seguridad (título, severidad, estado, origen, `external_id` opcional). Estados: `open`, `investigating`, `resolved`, `closed`.
 
 **Ejemplo:** Webhook crea incidente *"Brute force detectado"* con `status: open`, `source: Splunk`.
 
@@ -362,9 +498,9 @@ Recepción e incorporación de datos externos (alertas, logs) al sistema.
 
 ### Integración
 
-Conexión entre SecOps Hub y sistemas externos (SIEM, EDR, firewall).
+Conexión entre SecOps Hub y sistemas externos (SIEM, EDR, firewall, threat intel). Estado en `GET /api/integrations/status`.
 
-**Ejemplo:** Ver [integracion-red.md](integracion-red.md) para conectar Splunk y QRadar paso a paso.
+**Ejemplo:** El endpoint indica si triaje/respuesta están en modo `live` o `simulated` según API keys y runners.
 
 ---
 
@@ -388,9 +524,9 @@ Sistema que **detecta y bloquea** intrusiones en tiempo real (IDS + acción).
 
 ### JSON Web Token (JWT)
 
-Token firmado que acredita la identidad y rol del usuario tras el login. Expira en 8 horas en SecOps Hub.
+Token firmado que acredita identidad y rol tras el login. Incluye **access token** (corta vida, ~8 h) y **refresh token** (~30 días).
 
-**Ejemplo:** Login devuelve `access_token`; el frontend lo guarda en `localStorage` como `secops_token`.
+**Ejemplo:** Login devuelve tokens; el SPA los usa en `Authorization: Bearer …` o, con `AUTH_COOKIE_MODE=true`, en cookies httpOnly (`secops_access` / `secops_refresh`). Ante 401 se intenta `POST /api/auth/refresh`.
 
 ---
 
@@ -400,7 +536,7 @@ Token firmado que acredita la identidad y rol del usuario tras el login. Expira 
 
 Catálogo CISA de CVEs con explotación activa conocida. Prioridad de parcheo urgente.
 
-**Ejemplo:** Filtro *Solo CISA KEV* en Vulnerabilidades muestra `CVE-2023-4966` (Citrix Bleed) con badge KEV.
+**Ejemplo:** Filtro *Solo CISA KEV* en Vulnerabilidades; sincronización real con `POST /api/vulnerabilities/sync-kev` o `KEV_SYNC_ON_STARTUP=true`.
 
 ---
 
@@ -424,13 +560,29 @@ Movimiento lateral: atacante que pasa de un sistema comprometido a otros dentro 
 
 ### LDAP
 
-Protocolo de directorio para consultar usuarios y grupos (alternativa/complemento a AD).
+Protocolo de directorio. En SecOps Hub es login opcional: si falla el usuario local y `LDAP_ENABLED=true`, intenta bind (`ldap3`) y provisiona cuenta con `auth_source=ldap`.
 
-**Ejemplo:** En producción, login corporativo podría validar credenciales contra LDAP en lugar de usuarios locales.
+**Ejemplo:** Credenciales corporativas → bind a `LDAP_SERVER` → usuario creado/actualizado con rol `LDAP_DEFAULT_ROLE`.
+
+---
+
+### Live / Simulated (modo)
+
+Modo de operación de triaje y respuesta: **live** usa APIs reales; **simulated** usa fallbacks deterministas cuando faltan claves o la integración no es ejecutable.
+
+**Ejemplo:** Badge en IOCs/Playbooks y campo `enrichment_mode` / `response_mode` en las respuestas API.
 
 ---
 
 ## M
+
+### MFA / TOTP
+
+Autenticación multifactor con código de un solo uso basado en tiempo (pyotp). Setup en `/api/auth/mfa/setup`; login exige `otp` si `mfa_enabled`.
+
+**Ejemplo:** Tras activar MFA, el login responde `mfa_required` hasta que el analista introduce el código de su app Authenticator.
+
+---
 
 ### Malicious / Suspicious / Clean
 
@@ -452,11 +604,27 @@ Software malicioso: virus, troyanos, ransomware, etc.
 
 EDR/antivirus de Microsoft integrado en Windows y Microsoft 365.
 
-**Ejemplo:** Defender detecta amenaza → Sentinel/Splunk → webhook; playbook aísla vía Defender API.
+**Ejemplo:** Con `EDR_TYPE=defender` y `EDR_API_TOKEN`, el playbook `isolate_host` apunta a la API de aislamiento de dispositivo.
+
+---
+
+### Métricas (`/metrics`)
+
+Endpoint Prometheus con contadores/gauges (`secops_http_*`, `secops_incidents_open`, `secops_users_active`).
+
+**Ejemplo:** Prometheus scrapea `/metrics`; Grafana visualiza el dashboard SecOps Hub.
 
 ---
 
 ## N
+
+### Nginx
+
+Servidor web / reverse proxy. En Compose sirve el frontend y proxifica `/api`, `/health` y `/metrics` al backend; en bare-metal ver `deploy/nginx/secops-hub.conf`.
+
+**Ejemplo:** El contenedor frontend usa `frontend/nginx.conf` para unificar UI y API en el mismo origen.
+
+---
 
 ### NGFW (Next-Generation Firewall)
 
@@ -467,6 +635,14 @@ Firewall de nueva generación con IPS, filtrado de aplicaciones y amenazas integ
 ---
 
 ## O
+
+### OIDC (OpenID Connect)
+
+Protocolo de SSO sobre OAuth2. SecOps Hub implementa Authorization Code: `/api/auth/oidc/login` y `/callback`; provisiona usuarios `auth_source=oidc`.
+
+**Ejemplo:** Con `OIDC_ENABLED=true` el login muestra botón SSO; si el claim de grupos incluye `OIDC_ADMIN_GROUP`, el usuario recibe rol `admin`.
+
+---
 
 ### Ofensa (QRadar)
 
@@ -512,25 +688,49 @@ Suplantación de identidad por email para robar credenciales o instalar malware.
 
 ### Playbook
 
-Secuencia automatizada de pasos de respuesta a incidentes (aislar, revocar, escanear).
+Secuencia automatizada de respuesta. IDs: `isolate_host`, `block_ip`, `revoke_user`, `data_scan`. Los tres primeros son **destructivos** (exigen `confirm`; con four-eyes van a cola de aprobación).
 
-**Ejemplo:** Admin ejecuta playbook `isolate_host` con `hostname: SRV-FIN-01` → resultado en panel y audit log.
+**Ejemplo:** Admin ejecuta `isolate_host` con `hostname: SRV-FIN-01` → runner live (EDR) o simulado → audit log.
+
+---
+
+### PlaybookApproval
+
+Entidad/cola de solicitudes four-eyes: estados `pending`, `executed`, `failed`, `rejected`. El aprobador no puede ser el solicitante.
+
+**Ejemplo:** UI de Playbooks lista pendientes; Admin B aprueba → se llama a `run_playbook` y el estado pasa a `executed`.
 
 ---
 
 ### PostgreSQL
 
-Motor de base de datos relacional recomendado para producción (sustituye SQLite).
+Motor relacional recomendado en producción (Compose usa Postgres 16). Sustituye SQLite.
 
-**Ejemplo:** `DATABASE_URL=postgresql://secops:pass@db:5432/secops_hub` en `.env` de producción.
+**Ejemplo:** `DATABASE_URL=postgresql+psycopg://secops:pass@db:5432/secops_hub`.
+
+---
+
+### Prometheus
+
+Sistema de scrape de métricas. Perfil Docker `observability` scrapea `/metrics` del backend.
+
+**Ejemplo:** Config en `deploy/prometheus/prometheus.yml`; series `secops_incidents_open` en Grafana.
 
 ---
 
 ### Proxy (Vite)
 
-Intermediario en desarrollo que redirige peticiones `/api` del frontend al backend.
+Intermediario en desarrollo que redirige `/api` del frontend al backend.
 
-**Ejemplo:** Navegador llama `localhost:5173/api/incidents/stats` → Vite reenvía a `localhost:5000`.
+**Ejemplo:** `localhost:5173/api/incidents/stats` → Vite → `localhost:5000`.
+
+---
+
+### ProxyFix
+
+Middleware Werkzeug que confía en cabeceras `X-Forwarded-*` cuando hay reverse proxy. Se activa con `BEHIND_PROXY=true` o `FLASK_ENV=production`.
+
+**Ejemplo:** Nginx envía `X-Forwarded-Proto: https`; Flask genera URLs y esquemas HTTPS correctos.
 
 ---
 
@@ -570,11 +770,19 @@ Estilo de API que usa HTTP y recursos identificados por URLs (`GET /api/incident
 
 ---
 
+### Refresh token
+
+JWT de larga vida usado para renovar el access token sin volver a pedir contraseña (`POST /api/auth/refresh`).
+
+**Ejemplo:** Access caduca a las 8 h → el SPA reintenta con refresh (~30 días) antes de redirigir a `/login`.
+
+---
+
 ### Revocación (usuario)
 
-Invalidar credenciales y cerrar sesiones activas de un usuario comprometido.
+Invalidar credenciales y cerrar sesiones de un usuario comprometido (playbook `revoke_user`).
 
-**Ejemplo:** Playbook `revoke_user` con `username: jperez` — simulado hoy; en producción llamaría a AD/Azure AD.
+**Ejemplo:** Con Azure AD configurado → Graph API; sin credenciales → resultado simulado con `mode: simulated`.
 
 ---
 
@@ -606,9 +814,9 @@ Procedimiento documentado paso a paso para responder a un tipo de incidente (hum
 
 ### Seed (datos semilla)
 
-Script que inserta datos de demostración al primer arranque (usuarios, incidentes, IOCs, CVEs).
+Carga demo al arranque si `ENABLE_SEED=true` (usuarios, incidentes, IOCs, CVEs). En producción debe ser `false` y usarse bootstrap admin.
 
-**Ejemplo:** `seed_database()` crea `admin/admin123` y 5 incidentes si la BD está vacía. Desactivar en producción.
+**Ejemplo:** Con seed: `admin/admin123`. Sin seed: `BOOTSTRAP_ADMIN_*` o `python scripts/create_admin.py`.
 
 ---
 
@@ -638,17 +846,17 @@ Plataforma que centraliza logs, correlaciona eventos y genera alertas (Splunk, Q
 
 ### Simulador
 
-Código que imita una integración real sin llamar a sistemas externos (demo).
+Código que imita una integración sin llamar a sistemas externos. Queda como **fallback** si faltan claves o falla la API real.
 
-**Ejemplo:** `simulate_virustotal()` calcula score por hash del valor, no consulta VirusTotal real.
+**Ejemplo:** `simulate_virustotal()` / `simulate_abuseipdb()` en `ioc_enrichment.py` cuando no hay `VIRUSTOTAL_API_KEY` / `ABUSEIPDB_API_KEY`.
 
 ---
 
 ### SOAR (Security Orchestration, Automation and Response)
 
-Plataforma que automatiza respuesta a incidentes (Splunk Phantom, Cortex XSOAR).
+Plataforma que automatiza respuesta (Phantom, XSOAR, n8n, Ansible). SecOps Hub puede delegar vía `PLAYBOOK_CALLBACK_URL`.
 
-**Ejemplo:** SOAR puede llamar al webhook de SecOps Hub o viceversa en flujos híbridos.
+**Ejemplo:** `block_ip` hace POST al callback SOAR con la IP a denegar en el firewall.
 
 ---
 
@@ -694,9 +902,17 @@ Base de datos embebida en fichero, usada en desarrollo/demo de SecOps Hub.
 
 ### SSO (Single Sign-On)
 
-Inicio de sesión único con credenciales corporativas (Azure AD, Okta).
+Inicio de sesión único con IdP corporativo. En SecOps Hub se implementa con **OIDC** (p. ej. Entra ID / Okta).
 
-**Ejemplo:** Extensión futura: login con SSO en lugar de `admin/admin123` local.
+**Ejemplo:** Botón SSO en login → redirección al IdP → callback → sesión JWT (header o cookie).
+
+---
+
+### sync-kev
+
+Acción admin (`POST /api/vulnerabilities/sync-kev`) que descarga el feed CISA KEV e inserta/actualiza CVEs. También puede ejecutarse al arranque (`KEV_SYNC_ON_STARTUP`).
+
+**Ejemplo:** Tras sync, el filtro KEV muestra CVEs reales del catálogo además del seed.
 
 ---
 
@@ -720,9 +936,9 @@ Información sobre amenazas, actores y IOCs conocidos.
 
 ### Token (de acceso)
 
-Credencial temporal JWT tras autenticación. Distinto de API Key (sistemas) y contraseña.
+Credencial temporal JWT tras autenticación. Distinto de API Key (sistemas) y de refresh token.
 
-**Ejemplo:** Token expira a las 8 h → interceptor recibe 401 → redirección a `/login`.
+**Ejemplo:** Access ~8 h; si caduca, el cliente usa refresh o redirige a `/login`.
 
 ---
 
@@ -772,15 +988,15 @@ Red local virtual: segmento lógico aislado dentro de la red física.
 
 ### VirusTotal
 
-Servicio que escanea ficheros y URLs con múltiples motores antivirus.
+Servicio que escanea ficheros, IPs y URLs con múltiples motores antivirus.
 
-**Ejemplo:** Enriquecimiento muestra contadores VT: malicious 45, suspicious 12, harmless 30 (simulado en demo).
+**Ejemplo:** Con `VIRUSTOTAL_API_KEY` → lookup live y contadores reales; sin clave → simulador con `mode: simulated`.
 
 ---
 
 ### Vulnerabilidad
 
-Debilidad de seguridad en software/hardware explotable por un atacante.
+Debilidad de seguridad explotable. Estados: `open`, `in_progress`, `mitigated`, `accepted`, `closed`.
 
 **Ejemplo:** `CVE-2024-21413` — Outlook MonikerLink RCE, CVSS 9.8, KEV, estado `open`.
 
@@ -788,19 +1004,27 @@ Debilidad de seguridad en software/hardware explotable por un atacante.
 
 ## W
 
+### Wazuh
+
+SIEM/XDR open source usado en el laboratorio de infraestructura (alternativa a Splunk/QRadar en aula).
+
+**Ejemplo:** Regla Wazuh → webhook → `POST /api/webhooks/alert`. Ver [laboratorio-infraestructura.md](laboratorio-infraestructura.md).
+
+---
+
 ### Webhook
 
-Callback HTTP: un sistema notifica a otro enviando un POST automático cuando ocurre un evento.
+Callback HTTP: un sistema notifica a otro con POST al ocurrir un evento. Autenticado con `X-API-Key` (rotatable vía settings).
 
-**Ejemplo:** Splunk dispara webhook a `/api/webhooks/alert` al cumplirse una regla de alerta.
+**Ejemplo:** Splunk → `/api/webhooks/alert` con `{title, severity, source}` e idempotencia opcional.
 
 ---
 
 ### WSGI / Gunicorn
 
-Interfaz estándar Python para servidores web. Gunicorn es servidor WSGI para producción Flask.
+Interfaz estándar Python para servidores web. Gunicorn sirve `wsgi:app` en producción (solo localhost detrás del proxy).
 
-**Ejemplo:** Producción: `gunicorn -w 4 run:app` en lugar de `python run.py` con debug.
+**Ejemplo:** Unidad systemd o contenedor: `gunicorn -w 2 -b 0.0.0.0:5000 wsgi:app`.
 
 ---
 
@@ -808,11 +1032,11 @@ Interfaz estándar Python para servidores web. Gunicorn es servidor WSGI para pr
 
 ### X-API-Key
 
-Cabecera HTTP estándar de facto para enviar API Key en webhooks hacia SecOps Hub.
+Cabecera para autenticar el webhook SIEM. Puede rotarse (`/api/settings/webhook-key/rotate`); `AppSetting` prioriza sobre `.env`.
 
 **Ejemplo:**
 ```http
-X-API-Key: secops-webhook-key-dev
+X-API-Key: <WEBHOOK_API_KEY>
 ```
 
 ---
@@ -831,27 +1055,30 @@ Vulnerabilidad explotada antes de que exista parche público.
 
 | Categoría | Términos |
 |-----------|----------|
-| **Roles** | Admin, Analyst |
-| **Operaciones SOC** | SOC, SecOps, Consola, Dashboard, Triaje, Runbook, Orquestación, Ingesta |
+| **Roles** | Admin, Analyst, auth_source, Bootstrap admin |
+| **Operaciones SOC** | SOC, SecOps, Consola, Dashboard, Triaje, Runbook, Orquestación, Ingesta, Four-eyes |
 | **Amenazas** | Malware, Ransomware, Phishing, Trojan, Brute force, Exfiltración, Lateral movement, Zero-day |
-| **Indicadores** | IOC, Hash, IP, URL, Veredicto, Risk score, Enriquecimiento, Bloqueo |
-| **Vulnerabilidades** | CVE, CVSS, KEV, CISA, Vulnerabilidad, Patch, Severidad |
-| **Herramientas SIEM/EDR** | SIEM, Splunk, QRadar, EDR, Defender, CrowdStrike, Sentinel, SOAR |
-| **Red y perimetral** | Firewall, NGFW, Palo Alto, pfSense, IDS, IPS, DMZ, VLAN, Syslog |
-| **Identidad** | AD, Azure AD, LDAP, SSO, Graph API, Revocación |
-| **Integración** | Webhook, API, API Key, X-API-Key, REST, Integración, Simulador |
-| **Autenticación** | JWT, Bearer Token, RBAC, Token, CORS |
-| **SecOps Hub (app)** | Playbook, Incidente, Alerta, KPI, Audit log, Seed, Dashboard, Drill-down |
+| **Indicadores** | IOC, Hash, URL, Veredicto, Risk score, Enriquecimiento, enrichment_mode, Bloqueo, Confirm |
+| **Vulnerabilidades** | CVE, CVSS, KEV, CISA, sync-kev, Vulnerabilidad, Patch, Severidad |
+| **Herramientas SIEM/EDR** | SIEM, Splunk, QRadar, Wazuh, EDR, Defender, CrowdStrike, SOAR |
+| **Red y perimetral** | Firewall, NGFW, Palo Alto, IDS, IPS, DMZ, VLAN, Syslog, Deny list |
+| **Identidad** | AD, Azure AD, LDAP, SSO, OIDC, Graph API, MFA/TOTP, Revocación |
+| **Integración** | Webhook, API, API Key, X-API-Key, REST, Integración, Simulador, Live/Simulated, Idempotencia, Deduplicación, external_id |
+| **Autenticación** | JWT, Bearer, Refresh token, AUTH_COOKIE_MODE, RBAC, Token, CORS |
+| **SecOps Hub (app)** | Playbook, PlaybookApproval, Incidente, Alerta, KPI, Audit log, Seed, AppSetting, Drill-down, force_direct |
 | **Fuentes threat intel** | AbuseIPDB, VirusTotal, Threat Intel |
-| **Infraestructura** | HTTPS, TLS, PostgreSQL, SQLite, Flask, SPA, Proxy, WSGI, Gunicorn |
+| **Infraestructura** | HTTPS/TLS, PostgreSQL, SQLite, Flask, SPA, Proxy Vite, ProxyFix, WSGI, Gunicorn, Nginx, Caddy, Docker Compose, Alembic, ensure_schema, Health, Prometheus, Grafana, Métricas |
 | **Cumplimiento** | RGPD, GDPR |
-| **Desarrollo** | Blueprint, JSON, DevSecOps, Dark mode |
+| **Desarrollo** | Blueprint, DevSecOps, Dark mode |
 
 ---
 
 ## Referencias cruzadas
 
 - [Manual de usuario — glosario breve](manual-usuario.md#11-glosario)
+- [Contexto formativo](proyecto-institucional.md)
 - [Integración en red](integracion-red.md)
+- [Threat intel](threat-intel.md)
+- [Runbook operativo](runbook-operacion.md)
 - [Manual de laboratorio](manual-laboratorio.md)
 - [Manual de desarrollador](manual-desarrollador.md)
