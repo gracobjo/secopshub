@@ -176,6 +176,7 @@ Documentación completa en la carpeta [`docs/`](docs/README.md):
 | [Laboratorio de infraestructura](docs/laboratorio-infraestructura.md) | Montar lab desde cero (Hub + Wazuh + webhook) |
 | [Despliegue producción](deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall |
 | [Origen formativo](docs/proyecto-institucional.md) | Contexto educativo y objetivos del prototipo |
+| [Formación Jupyter](formacion/README.md) | Notebooks: Python SOC, IOC, pipeline alerta→playbook |
 
 ## Licencia
 

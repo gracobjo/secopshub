@@ -21,6 +21,7 @@
 | [Despliegue producción](../deploy/README.md) | Nginx/Caddy, Gunicorn, TLS, firewall | DevSecOps, sysadmins |
 | [Diccionario de términos](diccionario.md) | Glosario SOC, técnico y de productos | Todos |
 | [Ejemplos prácticos y casos de prueba](ejemplos-practicos.md) | Escenarios SOC ejecutables y matriz TC-01–TC-15 | Formación, QA |
+| [Formación Jupyter](../formacion/README.md) | Notebooks Python: automatización IOC, webhook, playbooks + gráficos | Alumnado, formadores |
 
 ## Cómo ver los diagramas SVG en Cursor / VS Code
 
