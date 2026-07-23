@@ -1,20 +1,17 @@
-# Formación — Python para automatización SOC (SecOps Hub)
+# Formación — SecOps Hub
 
-Material práctico para ejecutar en **VS Code / Cursor** con Jupyter.
+Material práctico del repositorio: notebooks Jupyter (automatización SOC) y guías Kali / LabEx.
 
-## Objetivo
+## Objetivo general
 
-Entender **cómo SecOps Hub usa Python** para automatizar operaciones de ciberseguridad:
+1. Entender **cómo SecOps Hub usa Python** (ingesta → IOC → playbooks)
+2. Montar **Kali Linux** en laboratorio autorizado
+3. Resolver el catálogo de ejercicios **LabEx Kali** con plan y soluciones de estudio
 
-1. Ingesta de alertas (webhook SIEM)
-2. Triaje / enriquecimiento de IOCs
-3. Orquestación de respuesta (playbooks)
-4. Métricas y visualización de resultados
-
-## Requisitos
+## Requisitos (notebooks 01–03)
 
 1. Extensión **Jupyter** en VS Code/Cursor (`ms-toolsai.jupyter`)
-2. Python 3.11+ (puedes usar el venv del backend)
+2. Python 3.11+
 
 ```powershell
 cd formacion
@@ -23,21 +20,29 @@ python -m venv .venv
 pip install -r requirements-notebooks.txt
 ```
 
-En VS Code: selecciona el kernel `.venv` de esta carpeta (o el de `backend/venv` tras instalar las deps de notebooks).
+Selecciona el kernel `.venv` de esta carpeta.
 
-## Notebooks y guías
+## Contenido de la carpeta `formacion/`
 
-| # | Archivo | Contenido |
-|---|---------|-----------|
-| 01 | `01_python_automatizacion_secops.ipynb` | Rol de Python, librerías del proyecto, mapa de módulos |
-| 02 | `02_enriquecimiento_ioc.ipynb` | Código real de detección/simulación IOC + gráficos |
-| 03 | `03_pipeline_alerta_respuesta.ipynb` | Pipeline alerta → incidente → playbook + métricas |
-| 04 | `04_kali_linux_instalacion_uso.md` | **Guía completa:** instalar y usar Kali en VM (lab) |
-| 04 | `04_kali_linux_instalacion_uso.ipynb` | Cuaderno de clase: checklist + puente IOC |
+| # | Archivo | Tipo | Contenido |
+|---|---------|------|-----------|
+| — | `README.md` | Índice | Este fichero |
+| — | `requirements-notebooks.txt` | Deps | Paquetes Python para notebooks |
+| 01 | `01_python_automatizacion_secops.ipynb` | Notebook | Rol de Python, librerías, mapa de módulos |
+| 02 | `02_enriquecimiento_ioc.ipynb` | Notebook | Detección/simulación IOC + gráficos |
+| 03 | `03_pipeline_alerta_respuesta.ipynb` | Notebook | Alerta → incidente → playbook + métricas |
+| 04 | `04_kali_linux_instalacion_uso.md` | Guía | Instalar y usar Kali en VM (ética, apt, nmap local) |
+| 04 | `04_kali_linux_instalacion_uso.ipynb` | Notebook | Checklist de clase + clasificar IOC |
+| 05 | `05_labex_kali_ejercicios.md` | Guía | Análisis LabEx, plan de realización, **soluciones** LX-01…15 |
+| — | `entregas_kali/` | Local | Checklists del alumno (**no** versionado) |
 
-Ejecuta las celdas **en orden** (`Shift+Enter`). La formación 04 se sigue sobre todo en la **guía `.md`** (instalación en VirtualBox/VMware); el notebook solo acompaña el aula.
+### Orden recomendado
 
-## Cómo se usa Python en SecOps Hub (resumen)
+```text
+01 → 02 → 03 → 04 (VM Kali) → 05 (ejercicios LabEx / equivalentes locales)
+```
+
+### Cómo se usa Python en SecOps Hub (resumen)
 
 | Operación SOC | Módulo Python | Librerías clave |
 |---------------|---------------|-----------------|
@@ -56,12 +61,19 @@ SecOps Hub **no sustituye** SIEM/EDR: Python orquesta la consola (ingesta → tr
 
 ## Formación 04 — Kali Linux
 
-Guía de instalación y uso en VM: [`04_kali_linux_instalacion_uso.md`](04_kali_linux_instalacion_uso.md).  
-Enfoque: laboratorio autorizado, terminal, nmap local, hashes/IOC y enlace con los notebooks 01–03.
+Guía: [`04_kali_linux_instalacion_uso.md`](04_kali_linux_instalacion_uso.md).
+
+## Formación 05 — LabEx Kali
+
+Análisis del catálogo [labex.io/es/exercises/kali](https://labex.io/es/exercises/kali), cronograma, y soluciones LX-01…LX-15:
+
+[`05_labex_kali_ejercicios.md`](05_labex_kali_ejercicios.md)
+
+Solo laboratorio autorizado (LabEx, VM propia o red de aula).
 
 ## Relación con el código del repositorio
 
-Los notebooks **reproducen la lógica esencial** de:
+Los notebooks **01–03** reproducen lógica de:
 
 - `backend/app/services/ioc_enrichment.py`
 - `backend/app/services/ioc_service.py`
@@ -74,4 +86,4 @@ Sin necesidad de arrancar Flask para las prácticas 01–03.
 
 No uses `from app.services...` con el kernel de `formacion/.venv`: al importar el paquete `app` se carga Flask y fallará (`ModuleNotFoundError: flask_jwt_extended`).
 
-El notebook carga `backend/app/services/ioc_enrichment.py` **como fichero** (via `importlib`), sin necesitar las dependencias del backend.
+El notebook carga `backend/app/services/ioc_enrichment.py` **como fichero** (via `importlib`).

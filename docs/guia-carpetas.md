@@ -93,7 +93,7 @@ secopsHub/
 
 ## 4. `formacion/` — El aula práctica (notebooks)
 
-**En una frase:** material de **clase** para aprender cómo Python automatiza ciberseguridad, con ejercicios que se ejecutan celda a celda.
+**En una frase:** material de **clase** para aprender automatización SOC con Python, Kali en VM y ejercicios LabEx (con plan y soluciones de estudio).
 
 | Archivo | Qué aprenderás |
 |---------|----------------|
@@ -102,7 +102,8 @@ secopsHub/
 | `03_pipeline_alerta_respuesta.ipynb` | De la alerta al playbook (bloqueo, aislamiento…) con gráficos |
 | `04_kali_linux_instalacion_uso.md` | Instalar Kali en máquina virtual y usarlo en laboratorio |
 | `04_kali_linux_instalacion_uso.ipynb` | Checklist de clase y puente con IOCs |
-| `README.md` | Cómo instalar el entorno y abrir los notebooks |
+| `05_labex_kali_ejercicios.md` | Análisis LabEx Kali, plan de ejercicios y soluciones de estudio |
+| `README.md` | Cómo instalar el entorno y mapa de toda la carpeta |
 | `requirements-notebooks.txt` | Lista de paquetes necesarios solo para la formación |
 
 **¿Quién la usa?** Alumnado y profesorado.  
