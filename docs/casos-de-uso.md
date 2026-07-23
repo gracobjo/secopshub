@@ -15,35 +15,33 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | Campo | Valor |
 |-------|-------|
 | **Actor** | Admin, Analyst |
-| **Descripción** | El usuario accede al sistema con credenciales válidas |
-| **Precondiciones** | Usuario registrado en BD |
-| **Postcondiciones** | Token JWT almacenado; redirección al dashboard |
-| **RF asociados** | RF-01, RF-02, RF-16 |
+| **Descripción** | Acceso con credenciales locales (o LDAP) y MFA opcional |
+| **Precondiciones** | Usuario en BD (local/LDAP/OIDC) y `is_active=true` |
+| **Postcondiciones** | Access (+ refresh) emitidos; redirección al dashboard |
+| **RF asociados** | RF-01, RF-02, RF-16, RF-18, RF-20 |
 
 ### Flujo principal
 
 1. Usuario accede a `/login`
 2. Introduce username y password
 3. Frontend envía `POST /api/auth/login`
-4. Backend valida credenciales con `User.check_password()`
-5. Backend genera JWT con claims `role` y `username`
-6. Frontend guarda token en `localStorage` (`secops_token`)
-7. Usuario es redirigido al dashboard
+4. Backend valida local o LDAP; si MFA activo y no hay OTP → 401 `mfa_required`
+5. Con OTP válido (si aplica) genera access + refresh JWT
+6. Frontend guarda sesión (localStorage y/o cookies según `AUTH_COOKIE_MODE`)
+7. Redirección al dashboard
 
-### Flujo alternativo — Credenciales inválidas
+### Flujos alternativos
 
-3a. Backend responde 401  
-4a. Frontend muestra error en formulario
+- Credenciales inválidas → 401 y mensaje de error
+- MFA requerido → UI pide código TOTP
+- SSO → ver CU-13
 
 ### Implementación
 
-| Capa | Archivo | Elemento |
-|------|---------|----------|
-| Backend | `app/routes/auth.py` | `login()` |
-| Backend | `app/models/__init__.py` | `User.check_password()` |
-| Frontend | `src/pages/LoginPage.tsx` | Formulario login |
-| Frontend | `src/context/AuthContext.tsx` | `login()` |
-| Frontend | `src/services/api.ts` | Cliente Axios |
+| Capa | Archivo |
+|------|---------|
+| Backend | `routes/auth.py`, `ldap_auth.py` |
+| Frontend | `LoginPage.tsx`, `AuthContext.tsx`, `api.ts` |
 
 ---
 
@@ -52,20 +50,21 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | Campo | Valor |
 |-------|-------|
 | **Actor** | Admin, Analyst |
-| **Postcondiciones** | Token eliminado; usuario en pantalla login |
+| **Postcondiciones** | Tokens/cookies eliminados; pantalla login |
+| **RF asociados** | RF-02 |
 
 ### Flujo principal
 
-1. Usuario pulsa "Cerrar sesión" en Sidebar
-2. `AuthContext.logout()` elimina token de localStorage
+1. Usuario pulsa **Cerrar sesión**
+2. Frontend llama `POST /api/auth/logout` (si aplica) y limpia almacenamiento/cookies
 3. Navegación a `/login`
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Frontend | `src/components/Sidebar.tsx` |
-| Frontend | `src/context/AuthContext.tsx` → `logout()` |
+| Backend | `routes/auth.py` → logout |
+| Frontend | `Sidebar.tsx`, `AuthContext.tsx` |
 
 ---
 
@@ -105,28 +104,19 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 
 ### Flujo principal
 
-1. Usuario accede a `/iocs`
-2. Pega IP, hash o URL en formulario
-3. Frontend envía `POST /api/iocs/enrich` con `{ value }`
-4. Backend detecta tipo con `detect_ioc_type()`
-5. Backend consulta simuladores VT y AbuseIPDB (si IP)
-6. Backend calcula `risk_score` y `verdict`
-7. Backend persiste/actualiza registro en tabla `iocs`
-8. Backend registra acción en `audit_logs`
-9. Frontend muestra panel de resultados
-
-### Flujo alternativo — Valor vacío
-
-3a. Backend responde 400 "Valor IOC requerido"
+1. Usuario accede a `/iocs` y pega IP, hash o URL
+2. `POST /api/iocs/enrich`
+3. `ioc_service.enrich_ioc()` usa VT/AbuseIPDB **live** si hay claves; si no, simuladores
+4. Calcula `risk_score`, `verdict`, `enrichment_mode`, `sources_used`
+5. Persiste IOC y audit log
+6. UI muestra badge live/simulado y resultados
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Backend | `app/routes/iocs.py` → `enrich()` |
-| Backend | `app/services/ioc_enrichment.py` |
-| Backend | `app/utils/decorators.py` → `@analyst_or_admin_required` |
-| Frontend | `src/pages/IOCsPage.tsx` |
+| Backend | `routes/iocs.py`, `ioc_service.py`, `external_clients.py`, `ioc_enrichment.py` |
+| Frontend | `IOCsPage.tsx` |
 
 ---
 
@@ -192,30 +182,24 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | **Precondiciones** | Rol admin |
 | **RF asociados** | RF-14 |
 
-### Flujo principal
+### Flujo principal (sin four-eyes o con `force_direct`)
 
-1. Admin accede a `/playbooks`
-2. Rellena parámetros (hostname, ip, username, …)
-3. Pulsa "Ejecutar" y confirma el diálogo (acciones destructivas)
-4. Frontend envía `POST /api/playbooks/run` con `{ playbook_id, params, confirm: true }`
-5. Backend verifica `@admin_required` y `confirm`
-6. `run_playbook()` ejecuta HTTP real si la integración es ejecutable; si no, simula
-7. Resultado (completed/failed + mode) en panel de resultados
-8. Acción registrada en audit log
+1. Admin en `/playbooks` rellena parámetros y confirma
+2. `POST /api/playbooks/run` con `confirm: true`
+3. Runner live o simulado; resultado en UI + audit log
 
-### Flujo alternativo — Usuario analyst
+### Flujo alternativo — Four-eyes (`PLAYBOOK_FOUR_EYES=true`)
 
-3a. Botón ejecutar deshabilitado en UI  
-4a. Si intenta vía API directa → 403
+1. Admin solicita playbook destructivo → 202 `pending_approval` (`PlaybookApproval`)
+2. **Otro** admin aprueba o rechaza en la cola (`/api/playbooks/approvals/...`)
+3. Si aprueba → se ejecuta el runner; si rechaza → estado `rejected`
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Backend | `app/routes/playbooks.py` → `run()` |
-| Backend | `app/services/playbook_runners.py` → `run_playbook()` |
-| Backend | `app/services/integration_capabilities.py` |
-| Frontend | `src/pages/PlaybooksPage.tsx` |
+| Backend | `routes/playbooks.py`, `playbook_runners.py` |
+| Frontend | `PlaybooksPage.tsx` |
 
 ---
 
@@ -224,33 +208,26 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | Campo | Valor |
 |-------|-------|
 | **Actor** | Sistema externo (SIEM/EDR) |
-| **Precondiciones** | API Key válida en header |
+| **Precondiciones** | API Key válida |
 | **RF asociados** | RF-15 |
 
 ### Flujo principal
 
-1. Sistema externo envía `POST /api/webhooks/alert`
-2. Incluye header `X-API-Key: <clave>`
-3. Backend valida clave contra `WEBHOOK_API_KEY`
-4. Backend crea registro `Incident` con datos del body
-5. Responde 201 con incidente creado
-6. Incidente visible en dashboard (KPIs actualizados)
-
-### Flujo alternativo — API Key inválida
-
-3a. Backend responde 401
+1. `POST /api/webhooks/alert` con `X-API-Key`
+2. Normaliza title/severity/source/`src_ip`/`hostname`
+3. Idempotencia (`Idempotency-Key` / `external_id`) o dedup por ventana → 200 si duplicado
+4. Crea `Incident` (201); opcionalmente IOC IP
+5. Visible en dashboard
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Backend | `app/routes/webhooks.py` → `receive_alert()` |
-| Backend | `app/utils/helpers.py` → `get_webhook_api_key()` |
-| Backend | `config.py` → `WEBHOOK_API_KEY` |
+| Backend | `routes/webhooks.py`, `settings_store.py` |
 
 ---
 
-## CU-09 — Registrar nuevo usuario (admin)
+## CU-09 — Gestionar usuarios (admin)
 
 | Campo | Valor |
 |-------|-------|
@@ -259,42 +236,38 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 
 ### Flujo principal
 
-1. Admin autenticado envía `POST /api/auth/register`
-2. Body: `{ username, email, password, role }`
-3. Backend verifica rol admin
-4. Crea usuario con password hasheado
-5. Responde 201
-
-> **Nota:** No existe UI para este caso de uso en v1; solo accesible vía API.
+1. Admin abre `/admin`
+2. Crea usuario (`POST /api/auth/register`) o lista/edita (`GET/PATCH /api/users`)
+3. Puede cambiar rol y `is_active`
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Backend | `app/routes/auth.py` → `register()` |
+| Backend | `routes/auth.py`, `routes/users.py` |
+| Frontend | `UsersPage.tsx` |
 
 ---
 
-## CU-10 — Restablecer sesión tras expiración
+## CU-10 — Restablecer / renovar sesión
 
 | Campo | Valor |
 |-------|-------|
 | **Actor** | Admin, Analyst |
-| **Disparador** | Token JWT expirado (8 h) o inválido |
+| **RF asociados** | RF-02, RF-16 |
 
 ### Flujo principal
 
-1. Usuario realiza petición API con token expirado
-2. Backend responde 401
-3. Interceptor Axios elimina token
-4. Redirección automática a `/login`
+1. Access token caduca → interceptor intenta `POST /api/auth/refresh`
+2. Si refresh OK → reintenta la petición
+3. Si falla → limpia sesión y redirige a `/login`
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Frontend | `src/services/api.ts` → interceptor response |
-| Backend | `config.py` → `JWT_ACCESS_TOKEN_EXPIRES` |
+| Frontend | `api.ts`, `AuthContext.tsx` |
+| Backend | `routes/auth.py` → refresh |
 
 ---
 
@@ -303,56 +276,148 @@ Ver diagrama completo en [diagramas-uml.md#1-diagrama-de-casos-de-uso](diagramas
 | Campo | Valor |
 |-------|-------|
 | **Actor** | Admin, Analyst |
-| **Disparador** | Modal de detalle KPI en el dashboard |
-| **Precondiciones** | Usuario autenticado; incidente existente |
+| **RF asociados** | RF-09b |
 
 ### Flujo principal
 
-1. Usuario abre KPI «Alertas activas» o «Total incidentes»
-2. Cambia `status` y/o `assigned_to` en la fila del incidente
-3. Pulsa **Guardar**
-4. Frontend llama `PATCH /api/incidents/<id>`
-5. Backend valida estado permitido y que el username exista (si se asigna)
-6. Persiste cambios, escribe audit log y responde 200
-7. UI refresca KPIs; si el incidente deja de estar activo, sale de «Alertas activas»
+1. Modal KPI → cambia status / assigned_to → Guardar
+2. `PATCH /api/incidents/<id>` + audit log + refresco KPIs
 
 ### Implementación
 
 | Capa | Archivo |
 |------|---------|
-| Backend | `app/routes/incidents.py` → `update_incident()` |
-| Frontend | `KpiDetailModal.tsx`, `services/incidents.ts` |
+| Backend | `routes/incidents.py` |
+| Frontend | `KpiDetailModal.tsx` |
+
+---
+
+## CU-12 — Activar MFA TOTP
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin, Analyst |
+| **RF asociados** | RF-18 |
+
+1. En Admin / perfil MFA: `POST /api/auth/mfa/setup` → secret + otpauth URI  
+2. Escanea con app Authenticator → `enable` con código  
+3. Siguientes logins exigen OTP  
+
+---
+
+## CU-13 — Login SSO (OIDC)
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin, Analyst |
+| **RF asociados** | RF-19 |
+
+1. Con OIDC habilitado, usuario pulsa SSO en Login  
+2. Redirect IdP → `/api/auth/oidc/callback`  
+3. Provisioning `auth_source=oidc` → sesión JWT → SPA  
+
+---
+
+## CU-14 — Rotar clave webhook
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin |
+| **RF asociados** | RF-21 |
+
+1. Admin rota clave en UI Admin  
+2. `POST /api/settings/webhook-key/rotate`  
+3. Copia la clave (una vez) y actualiza el SIEM  
+
+---
+
+## CU-15 — Sincronizar CISA KEV
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin |
+| **RF asociados** | RF-22 |
+
+1. En Vulnerabilidades → **Sync CISA KEV**  
+2. `POST /api/vulnerabilities/sync-kev`  
+3. Tabla actualizada con CVEs KEV  
+
+---
+
+## CU-16 — Actualizar estado de vulnerabilidad
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin, Analyst |
+| **RF asociados** | RF-23 |
+
+1. Desplegable de estado en fila CVE  
+2. `PATCH /api/vulnerabilities/<id>`  
+
+---
+
+## CU-17 — Exportar PDF de incidente
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin, Analyst |
+| **RF asociados** | RF-24 |
+
+1. Modal KPI → botón **PDF**  
+2. `GET /api/incidents/<id>/report/pdf` → descarga  
+
+---
+
+## CU-18 — Aprobar / rechazar playbook (4-eyes)
+
+| Campo | Valor |
+|-------|-------|
+| **Actor** | Admin (distinto del solicitante) |
+| **RF asociados** | RF-14 |
+
+1. Solicitud pendiente en cola  
+2. Aprobar → ejecución; Rechazar → `rejected`  
+3. El solicitante no puede autoaprobar  
 
 ---
 
 ## 2. Resumen de casos de uso
 
-| ID | Caso de uso | Actor | Implementado |
-|----|-------------|-------|:------------:|
-| CU-01 | Iniciar sesión | Admin, Analyst | ✓ |
-| CU-02 | Cerrar sesión | Admin, Analyst | ✓ |
-| CU-03 | Consultar dashboard | Admin, Analyst | ✓ |
-| CU-04 | Enriquecer IOC | Admin, Analyst | ✓ |
-| CU-05 | Bloquear IOC | Admin, Analyst | ✓ |
-| CU-06 | Filtrar vulnerabilidades | Admin, Analyst | ✓ |
-| CU-07 | Ejecutar playbook | Admin | ✓ |
-| CU-08 | Recibir webhook | Sistema externo | ✓ |
-| CU-09 | Registrar usuario | Admin | ✓ (solo API) |
-| CU-10 | Expiración de sesión | Admin, Analyst | ✓ |
-| CU-11 | Actualizar incidente | Admin, Analyst | ✓ |
+| ID | Caso de uso | Actor | RF |
+|----|-------------|-------|-----|
+| CU-01 | Iniciar sesión | Admin, Analyst | RF-01, RF-18, RF-20 |
+| CU-02 | Cerrar sesión | Admin, Analyst | RF-02 |
+| CU-03 | Consultar dashboard | Admin, Analyst | RF-06–08 |
+| CU-04 | Enriquecer IOC | Admin, Analyst | RF-10 |
+| CU-05 | Bloquear IOC | Admin, Analyst | RF-11 |
+| CU-06 | Filtrar vulnerabilidades | Admin, Analyst | RF-12 |
+| CU-07 | Ejecutar playbook | Admin | RF-14 |
+| CU-08 | Recibir webhook | Sistema externo | RF-15 |
+| CU-09 | Gestionar usuarios | Admin | RF-04 |
+| CU-10 | Renovar sesión | Admin, Analyst | RF-02 |
+| CU-11 | Actualizar incidente | Admin, Analyst | RF-09b |
+| CU-12 | Activar MFA | Admin, Analyst | RF-18 |
+| CU-13 | Login SSO OIDC | Admin, Analyst | RF-19 |
+| CU-14 | Rotar webhook key | Admin | RF-21 |
+| CU-15 | Sync CISA KEV | Admin | RF-22 |
+| CU-16 | Estado CVE | Admin, Analyst | RF-23 |
+| CU-17 | Exportar PDF | Admin, Analyst | RF-24 |
+| CU-18 | Aprobar playbook 4-eyes | Admin | RF-14 |
 
 ---
 
 ## 3. Matriz actor × caso de uso
 
-| Caso de uso | Admin | Analyst | Sistema externo |
-|-------------|:-----:|:-------:|:---------------:|
-| CU-01 Login | ✓ | ✓ | |
-| CU-03 Dashboard | ✓ | ✓ | |
-| CU-04 Enriquecer IOC | ✓ | ✓ | |
-| CU-05 Bloquear IOC | ✓ | ✓ | |
-| CU-06 Vulnerabilidades | ✓ | ✓ | |
-| CU-07 Playbooks | ✓ | | |
-| CU-08 Webhook | | | ✓ |
-| CU-09 Registro | ✓ | | |
-| CU-11 Actualizar incidente | ✓ | ✓ | |
+| Caso de uso | Admin | Analyst | SIEM | IdP |
+|-------------|:-----:|:-------:|:----:|:---:|
+| CU-01 Login | ✓ | ✓ | | |
+| CU-03 Dashboard | ✓ | ✓ | | |
+| CU-04 / CU-05 IOCs | ✓ | ✓ | | |
+| CU-06 / CU-16 Vulns | ✓ | ✓ | | |
+| CU-07 / CU-18 Playbooks | ✓ | | | |
+| CU-08 Webhook | | | ✓ | |
+| CU-09 / CU-14 Admin | ✓ | | | |
+| CU-12 MFA | ✓ | ✓ | | |
+| CU-13 SSO | ✓ | ✓ | | ✓ |
+| CU-15 Sync KEV | ✓ | | | |
+| CU-17 PDF | ✓ | ✓ | | |

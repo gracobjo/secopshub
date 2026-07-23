@@ -14,10 +14,11 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | Actor | Descripción |
 |-------|-------------|
-| **Administrador (Admin)** | Usuario con privilegios elevados: ejecuta playbooks, registra usuarios |
-| **Analista (Analyst)** | Usuario operativo: monitoriza, analiza IOCs y vulnerabilidades |
-| **Sistema externo** | SIEM, EDR u otra herramienta que envía alertas por webhook |
-| **Desarrollador** | Mantiene y extiende la plataforma (fuera del alcance funcional directo) |
+| **Administrador (Admin)** | Privilegios elevados: playbooks, usuarios, MFA admin, sync KEV, rotar webhook, aprobar 4-eyes |
+| **Analista (Analyst)** | Operativa: dashboard, IOCs, vulnerabilidades, PDF; puede activar MFA propio |
+| **Sistema externo** | SIEM/EDR que envía alertas por webhook (`X-API-Key`) |
+| **IdP / LDAP** (opcional) | Proveedor OIDC o directorio LDAP para login corporativo |
+| **Desarrollador** | Mantiene y extiende la plataforma |
 
 ---
 
@@ -27,46 +28,46 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | ID | RF-01 |
 |----|-------|
-| **Descripción** | El sistema debe permitir a los usuarios autenticarse con nombre de usuario y contraseña |
+| **Descripción** | Autenticación con usuario/contraseña local; opcionalmente LDAP; challenge MFA TOTP si está activado |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Credenciales válidas devuelven JWT; inválidas devuelven 401 |
-| **Implementación** | `POST /api/auth/login`, `AuthContext.login()`, `LoginPage` |
+| **Criterio de aceptación** | Credenciales válidas → JWT (y refresh); si MFA activo sin OTP → `mfa_required` 401; inválidas → 401 |
+| **Implementación** | `POST /api/auth/login`, `ldap_auth.py`, `LoginPage`, `AuthContext` |
 
 ### RF-02 — Gestión de sesión JWT
 
 | ID | RF-02 |
 |----|-------|
-| **Descripción** | Las sesiones deben basarse en tokens JWT con tiempo de expiración |
+| **Descripción** | Access token (~8 h) + refresh token (~30 d); opcionalmente cookies httpOnly (`AUTH_COOKIE_MODE`) |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Token expira a las 8 h; peticiones sin token válido reciben 401 |
-| **Implementación** | `Flask-JWT-Extended`, `JWT_ACCESS_TOKEN_EXPIRES`, interceptor Axios |
+| **Criterio de aceptación** | Access caducado permite renovar vía `POST /api/auth/refresh`; logout invalida sesión/cookies |
+| **Implementación** | Flask-JWT-Extended, `auth_cookies.py`, interceptor Axios |
 
 ### RF-03 — Control de acceso basado en roles (RBAC)
 
 | ID | RF-03 |
 |----|-------|
-| **Descripción** | El sistema debe diferenciar permisos entre roles `admin` y `analyst` |
+| **Descripción** | Permisos por roles `admin` y `analyst`; usuarios inactivos no pueden autenticarse |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Endpoints restringidos devuelven 403 si el rol no es suficiente |
-| **Implementación** | `@admin_required`, `@analyst_or_admin_required`, claims JWT |
+| **Criterio de aceptación** | Endpoints restringidos → 403; `is_active=false` → login rechazado |
+| **Implementación** | `@admin_required`, `@analyst_or_admin_required`, `AdminRoute` |
 
-### RF-04 — Registro de usuarios (admin)
+### RF-04 — Registro y gestión de usuarios (admin)
 
 | ID | RF-04 |
 |----|-------|
-| **Descripción** | Un administrador puede registrar nuevos usuarios con rol asignado |
-| **Prioridad** | Media |
-| **Criterio de aceptación** | Solo admin puede llamar a register; username/email únicos |
-| **Implementación** | `POST /api/auth/register` |
+| **Descripción** | Admin crea usuarios (API y UI `/admin`), lista y modifica rol/`is_active` |
+| **Prioridad** | Alta |
+| **Criterio de aceptación** | Solo admin; username/email únicos; UI Admin operativa |
+| **Implementación** | `POST /api/auth/register`, `GET/PATCH /api/users`, `UsersPage` |
 
 ### RF-05 — Perfil de usuario autenticado
 
 | ID | RF-05 |
 |----|-------|
-| **Descripción** | El usuario autenticado puede consultar su perfil |
+| **Descripción** | Consulta de perfil y configuración de auth pública (`cookie_mode`, OIDC, LDAP, four_eyes) |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | `GET /api/auth/me` devuelve id, username, email, role |
-| **Implementación** | `auth.py`, `AuthProvider.fetchUser()` |
+| **Criterio de aceptación** | `GET /api/auth/me` y `GET /api/auth/config` |
+| **Implementación** | `auth.py`, `AuthProvider` |
 
 ### RF-06 — Dashboard con KPIs
 
@@ -117,10 +118,10 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | ID | RF-10 |
 |----|-------|
-| **Descripción** | Análisis de IPs/hashes/URLs con puntuación de riesgo y veredicto |
+| **Descripción** | Análisis de IPs/hashes/URLs con risk score y veredicto; VirusTotal/AbuseIPDB **live** si hay API keys, si no **simulado** |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Devuelve risk_score, verdict, datos VT/AbuseIPDB |
-| **Implementación** | `POST /api/iocs/enrich`, `ioc_enrichment.py`, `IOCsPage` |
+| **Criterio de aceptación** | Respuesta con `enrichment_mode` (`live`\|`simulated`), `sources_used`, risk_score, verdict |
+| **Implementación** | `POST /api/iocs/enrich`, `ioc_service.py`, `external_clients.py`, `IOCsPage` |
 
 ### RF-11 — Bloqueo de IOCs
 
@@ -153,19 +154,19 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | ID | RF-14 |
 |----|-------|
-| **Descripción** | Solo admin puede ejecutar playbooks de respuesta |
+| **Descripción** | Solo admin ejecuta playbooks; destructivos exigen `confirm=true`; con `PLAYBOOK_FOUR_EYES` crean solicitud pendiente |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Analyst recibe 403; admin recibe resultado de ejecución |
-| **Implementación** | `POST /api/playbooks/run`, `run_playbook()` |
+| **Criterio de aceptación** | Analyst → 403; sin confirm → 400; con 4-eyes → 202 `pending_approval`; otro admin aprueba/rechaza |
+| **Implementación** | `POST /api/playbooks/run`, `/approvals`, `playbook_runners.py`, `PlaybooksPage` |
 
 ### RF-15 — Recepción de webhooks
 
 | ID | RF-15 |
 |----|-------|
-| **Descripción** | Endpoint para recibir alertas externas autenticadas por API Key |
+| **Descripción** | Alertas externas con `X-API-Key`; idempotencia; deduplicación temporal; campos `src_ip`/`hostname`; IOC IP opcional |
 | **Prioridad** | Alta |
-| **Criterio de aceptación** | Alerta válida crea incidente; API Key inválida → 401 |
-| **Implementación** | `POST /api/webhooks/alert`, header `X-API-Key` |
+| **Criterio de aceptación** | 201 creado / 200 duplicado; API Key inválida → 401; clave rotada en `app_settings` prioriza sobre `.env` |
+| **Implementación** | `POST /api/webhooks/alert`, `settings_store.py` |
 
 ### RF-16 — Rutas protegidas en frontend
 
@@ -180,10 +181,91 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | ID | RF-17 |
 |----|-------|
-| **Descripción** | Creación automática de usuarios demo y datos de prueba |
+| **Descripción** | Datos demo si `ENABLE_SEED=true`; si no, bootstrap admin (`BOOTSTRAP_ADMIN_*` o script) |
 | **Prioridad** | Baja |
-| **Criterio de aceptación** | Al primer arranque existen admin, analyst, incidentes, IOCs, CVEs |
-| **Implementación** | `seed_database()` en `create_app()` |
+| **Criterio de aceptación** | Seed o bootstrap según configuración; producción con `ENABLE_SEED=false` |
+| **Implementación** | `seed_database()`, `bootstrap_admin_if_needed()`, `scripts/create_admin.py` |
+
+### RF-18 — MFA TOTP
+
+| ID | RF-18 |
+|----|-------|
+| **Descripción** | Segundo factor TOTP: setup, enable, disable |
+| **Prioridad** | Alta |
+| **Criterio de aceptación** | Login exige OTP si `mfa_enabled`; setup genera secret/`otpauth_uri` |
+| **Implementación** | `/api/auth/mfa/*`, `pyotp`, UI Admin |
+
+### RF-19 — SSO OIDC
+
+| ID | RF-19 |
+|----|-------|
+| **Descripción** | Login Authorization Code con IdP; provisioning `auth_source=oidc` |
+| **Prioridad** | Alta |
+| **Criterio de aceptación** | Con `OIDC_ENABLED` el login muestra SSO; callback crea/actualiza usuario |
+| **Implementación** | `oidc_auth.py`, `/api/auth/oidc/login`, `/callback` |
+
+### RF-20 — Autenticación LDAP
+
+| ID | RF-20 |
+|----|-------|
+| **Descripción** | Login LDAP (bind) y alta JIT si falla local y `LDAP_ENABLED` |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | Usuario LDAP provisionado con `auth_source=ldap` |
+| **Implementación** | `ldap_auth.py`, `ldap3` |
+
+### RF-21 — Rotación de WEBHOOK_API_KEY
+
+| ID | RF-21 |
+|----|-------|
+| **Descripción** | Admin consulta meta y rota la clave (visible una sola vez) |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | Clave nueva en `app_settings`; SIEM debe actualizarse |
+| **Implementación** | `/api/settings/webhook-key`, `UsersPage` / settings UI |
+
+### RF-22 — Sincronización CISA KEV
+
+| ID | RF-22 |
+|----|-------|
+| **Descripción** | Admin sincroniza feed KEV; opcional al arranque |
+| **Prioridad** | Alta |
+| **Criterio de aceptación** | `POST /api/vulnerabilities/sync-kev` upsert CVEs |
+| **Implementación** | `kev_sync.py`, botón Sync en `VulnerabilitiesPage` |
+
+### RF-23 — Actualización de estado de vulnerabilidad
+
+| ID | RF-23 |
+|----|-------|
+| **Descripción** | Analyst/admin cambian estado CVE |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | `PATCH` con status permitido |
+| **Implementación** | `PATCH /api/vulnerabilities/<id>` |
+
+### RF-24 — Informe PDF de incidente
+
+| ID | RF-24 |
+|----|-------|
+| **Descripción** | Exportar informe ejecutivo PDF desde el modal KPI |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | `GET /api/incidents/<id>/report/pdf` descarga PDF |
+| **Implementación** | `pdf_report.py`, `KpiDetailModal` |
+
+### RF-25 — Estado de integraciones
+
+| ID | RF-25 |
+|----|-------|
+| **Descripción** | Consultar qué capas están live/simulated |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | `GET /api/integrations/status` |
+| **Implementación** | `integrations.py`, `integration_capabilities.py` |
+
+### RF-26 — Health check
+
+| ID | RF-26 |
+|----|-------|
+| **Descripción** | Endpoint de salud con comprobación de BD |
+| **Prioridad** | Media |
+| **Criterio de aceptación** | `/health` → `ok` o `degraded` (503) |
+| **Implementación** | `routes/health.py` |
 
 ---
 
@@ -230,13 +312,13 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 | **Prioridad** | Media |
 | **Implementación** | Tailwind CSS, paleta slate/emerald/rose |
 
-### RNF-06 — Rendimiento de arranque
+### RNF-06 — Esquema de base de datos
 
 | ID | RNF-06 |
 |----|--------|
-| **Descripción** | Creación automática de esquema BD sin migraciones manuales |
+| **Descripción** | Arranque con `create_all` + `ensure_schema`; migraciones Alembic disponibles |
 | **Prioridad** | Media |
-| **Implementación** | `db.create_all()` al iniciar |
+| **Implementación** | `db.create_all()`, `schema.py`, `backend/migrations/` |
 
 ### RNF-07 — Mantenibilidad
 
@@ -244,37 +326,37 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 |----|--------|
 | **Descripción** | Arquitectura desacoplada frontend/backend con blueprints modulares |
 | **Prioridad** | Alta |
-| **Implementación** | Flask blueprints + React SPA separados |
+| **Implementación** | Flask blueprints + React SPA |
 
 ### RNF-08 — Portabilidad
 
 | ID | RNF-08 |
 |----|--------|
-| **Descripción** | Ejecutable en entorno local con Python 3.11+ y Node.js |
+| **Descripción** | Ejecutable en local (Python 3.11+, Node) o Docker Compose |
 | **Prioridad** | Alta |
-| **Implementación** | SQLite embebido, sin dependencias externas obligatorias |
+| **Implementación** | SQLite embebido o Postgres; `docker-compose.yml` |
 
 ### RNF-09 — Trazabilidad
 
 | ID | RNF-09 |
 |----|--------|
-| **Descripción** | Acciones sensibles quedan registradas en log de auditoría |
+| **Descripción** | Acciones sensibles en audit log |
 | **Prioridad** | Media |
 | **Implementación** | `AuditLog`, `log_action()` |
 
-### RNF-10 — Escalabilidad (diseño)
+### RNF-10 — Escalabilidad
 
 | ID | RNF-10 |
 |----|--------|
-| **Descripción** | Preparado para sustituir SQLite por PostgreSQL y APIs simuladas por reales |
-| **Prioridad** | Baja |
-| **Implementación** | `DATABASE_URL` configurable, servicios desacoplados |
+| **Descripción** | PostgreSQL en producción/Compose; integraciones live vía `.env` |
+| **Prioridad** | Media |
+| **Implementación** | `DATABASE_URL`, clientes HTTP |
 
 ### RNF-11 — Disponibilidad (desarrollo)
 
 | ID | RNF-11 |
 |----|--------|
-| **Descripción** | Backend y frontend pueden ejecutarse de forma independiente |
+| **Descripción** | Backend y frontend independientes en desarrollo |
 | **Prioridad** | Media |
 | **Implementación** | Puertos 5000 y 5173, proxy Vite |
 
@@ -284,7 +366,31 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 |----|--------|
 | **Descripción** | Interfaz en español |
 | **Prioridad** | Baja |
-| **Implementación** | Textos hardcoded en español en componentes React |
+| **Implementación** | Textos en componentes React |
+
+### RNF-13 — Observabilidad
+
+| ID | RNF-13 |
+|----|--------|
+| **Descripción** | Métricas Prometheus en `/metrics`; profile Grafana opcional |
+| **Prioridad** | Media |
+| **Implementación** | `metrics.py`, `deploy/prometheus`, `deploy/grafana` |
+
+### RNF-14 — Despliegue en contenedores
+
+| ID | RNF-14 |
+|----|--------|
+| **Descripción** | Stack Compose: Postgres + backend + frontend (+ observability) |
+| **Prioridad** | Alta |
+| **Implementación** | `docker-compose.yml`, Dockerfiles |
+
+### RNF-15 — Material formativo
+
+| ID | RNF-15 |
+|----|--------|
+| **Descripción** | Notebooks Jupyter de prácticas Python SOC |
+| **Prioridad** | Baja |
+| **Implementación** | Carpeta `formacion/` |
 
 ---
 
@@ -292,14 +398,17 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 | RF | Módulo backend | Módulo frontend |
 |----|----------------|-----------------|
-| RF-01–05 | `routes/auth.py` | `AuthContext`, `LoginPage` |
-| RF-06–09b | `routes/incidents.py` | `DashboardPage`, `KpiDetailModal` |
-| RF-10–11 | `routes/iocs.py`, `ioc_enrichment.py` | `IOCsPage` |
-| RF-12 | `routes/vulns.py` | `VulnerabilitiesPage` |
-| RF-13–14 | `routes/playbooks.py` | `PlaybooksPage` |
-| RF-15 | `routes/webhooks.py` | Documentado en Playbooks |
-| RF-16 | — | `ProtectedRoute`, `api.ts` |
-| RF-17 | `services/seed.py`, `services/bootstrap.py` | — |
+| RF-01–05, RF-18–20 | `routes/auth.py`, `ldap_auth`, `oidc_auth`, `auth_cookies` | `LoginPage`, `AuthContext`, `UsersPage` |
+| RF-06–09b, RF-24 | `routes/incidents.py`, `pdf_report` | `DashboardPage`, `KpiDetailModal` |
+| RF-10–11 | `ioc_service`, `external_clients`, `ioc_enrichment` | `IOCsPage` |
+| RF-12, RF-22–23 | `routes/vulns.py`, `kev_sync` | `VulnerabilitiesPage` |
+| RF-13–14 | `routes/playbooks.py`, `playbook_runners` | `PlaybooksPage` |
+| RF-15, RF-21 | `webhooks.py`, `settings.py` | Admin / settings |
+| RF-16 | — | `ProtectedRoute`, `AdminRoute`, `api.ts` |
+| RF-17 | `seed.py`, `bootstrap.py` | — |
+| RF-25–26 | `integrations.py`, `health.py` | badges modo live |
+| RNF-13–14 | `metrics.py`, Compose | — |
+| RNF-15 | — | `formacion/*.ipynb` |
 
 ---
 
@@ -307,23 +416,23 @@ SecOps Hub es una plataforma web que centraliza operaciones de ciberseguridad: a
 
 ### Restricciones
 
-- Enriquecimiento de IOCs es **simulado** (no requiere API keys externas en demo)
-- No hay MFA ni OAuth en esta versión
-- Registro de usuarios solo vía API (sin UI)
+- Sin API keys de threat intel/EDR → modo **simulado** (fallback automático)
+- Four-eyes opcional (`PLAYBOOK_FOUR_EYES`); por defecto puede estar desactivado
+- SSO/LDAP solo si se configuran variables de entorno
+- No hay WebSockets de alertas en tiempo real en esta versión
 
 ### Supuestos
 
-- Usuario dispone de navegador moderno
-- Backend accesible desde frontend (proxy o mismo origen)
-- Datos de vulnerabilidades e incidentes son de demostración
+- Navegador moderno; backend accesible (proxy Vite, mismo origen o Compose `:80`)
+- En demo, `ENABLE_SEED=true` carga datos de prueba
+- En producción: HTTPS, PostgreSQL, secretos ≥ 32 caracteres, `ENABLE_SEED=false`
 
 ---
 
 ## 7. Priorización MoSCoW
 
-| Must | Should | Could | Won't (v1) |
-|------|--------|-------|------------|
-| RF-01, RF-02, RF-03 | RF-07, RF-08 | RF-17 | OAuth / SSO |
-| RF-06, RF-09, RF-10 | RF-11, RF-13 | | MFA |
-| RF-12, RF-14, RF-15 | RF-04 | | Integración real VT/AbuseIPDB |
-| RF-16 | | | WebSockets tiempo real |
+| Must | Should | Could | Won't (aún) |
+|------|--------|-------|-------------|
+| RF-01–03, RF-06, RF-09, RF-10 | RF-04, RF-07, RF-08, RF-11 | RF-17, RNF-15 | WebSockets tiempo real |
+| RF-12, RF-14–16, RF-18 | RF-19–21, RF-23–26 | | SOAR comercial completo |
+| RF-22, RNF-01–03, RNF-14 | RNF-10, RNF-13 | | |

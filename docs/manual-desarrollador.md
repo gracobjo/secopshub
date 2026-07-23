@@ -19,25 +19,23 @@ Comunicación vía **REST JSON** con autenticación **JWT Bearer**.
 ```
 secopsHub/
 ├── backend/
-│   ├── config.py                 # Configuración centralizada
-│   ├── run.py                      # Entry point
-│   ├── requirements.txt
+│   ├── config.py / run.py / wsgi.py
+│   ├── requirements.txt / migrations/ / tests/
 │   └── app/
-│       ├── __init__.py             # Application factory
-│       ├── models/__init__.py      # Modelos SQLAlchemy
-│       ├── routes/                 # Blueprints Flask
-│       ├── services/               # Lógica de negocio
-│       └── utils/                  # Decoradores y helpers
-├── frontend/
-│   ├── vite.config.ts              # Proxy /api → :5000
-│   └── src/
-│       ├── context/                # AuthContext
-│       ├── services/api.ts         # Cliente Axios + interceptores
-│       ├── components/             # UI reutilizable
-│       ├── pages/                  # Vistas por ruta
-│       └── types/                  # Interfaces TypeScript
-└── docs/                           # Documentación
+│       ├── routes/     # auth, users, settings, incidents, iocs, vulns,
+│       │               # playbooks, webhooks, integrations, health, frontend
+│       ├── services/   # ioc_*, playbook_runners, kev_sync, pdf_report,
+│       │               # oidc/ldap/auth_cookies, metrics, bootstrap...
+│       ├── models/
+│       └── utils/
+├── frontend/src/pages/   # Login, Dashboard, IOCs, Vulns, Playbooks, Users(Admin)
+├── deploy/               # nginx, caddy, systemd, prometheus, grafana
+├── formacion/            # notebooks Jupyter
+├── docs/
+└── docker-compose.yml
 ```
+
+Guía no técnica: [guia-carpetas.md](guia-carpetas.md).
 
 ---
 
@@ -106,12 +104,16 @@ El patrón **factory** en `app/__init__.py`:
 
 | Blueprint | Prefijo | Archivo |
 |-----------|---------|---------|
-| auth | `/api/auth` | `routes/auth.py` |
-| incidents | `/api/incidents` | `routes/incidents.py` |
+| auth | `/api/auth` | `routes/auth.py` (login, refresh, logout, MFA, OIDC, register, config) |
+| users | `/api/users` | `routes/users.py` |
+| settings | `/api/settings` | `routes/settings.py` (webhook key) |
+| incidents | `/api/incidents` | `routes/incidents.py` (+ PDF) |
 | iocs | `/api/iocs` | `routes/iocs.py` |
-| vulns | `/api/vulnerabilities` | `routes/vulns.py` |
-| playbooks | `/api/playbooks` | `routes/playbooks.py` |
+| vulns | `/api/vulnerabilities` | `routes/vulns.py` (+ sync-kev) |
+| playbooks | `/api/playbooks` | `routes/playbooks.py` (+ approvals) |
 | webhooks | `/api/webhooks` | `routes/webhooks.py` |
+| integrations | `/api/integrations` | `routes/integrations.py` |
+| health | `/api/health`, `/health`, `/metrics` | `routes/health.py` |
 | frontend | `/` | `routes/frontend.py` |
 
 ---
@@ -162,10 +164,12 @@ create_access_token(
 
 ### Frontend — flujo JWT
 
-1. Login → `localStorage.setItem('secops_token', token)`
-2. Interceptor request → header `Authorization: Bearer <token>`
-3. Interceptor response → 401 → borrar token + redirect `/login`
-4. `AuthProvider` → al montar, `GET /api/auth/me` si hay token
+1. Login → access (+ refresh); opcional cookies (`AUTH_COOKIE_MODE`)
+2. Interceptor → `Authorization: Bearer` y/o credentials
+3. Ante 401 → intenta `POST /api/auth/refresh`; si falla → `/login`
+4. `GET /api/auth/me` y `GET /api/auth/config` al montar
+
+Variables relevantes: `OIDC_*`, `LDAP_*`, `AUTH_COOKIE_MODE`, `PLAYBOOK_FOUR_EYES`, `ABUSEIPDB_API_KEY`, `VIRUSTOTAL_API_KEY`, `EDR_*`, `FIREWALL_*`, `AZURE_AD_*`.
 
 ---
 
@@ -174,9 +178,24 @@ create_access_token(
 ### Auth
 
 ```
-POST /api/auth/login          { username, password }
-GET  /api/auth/me             [JWT]
-POST /api/auth/register       [JWT admin] { username, email, password, role? }
+POST /api/auth/login            { username, password, otp? }
+POST /api/auth/refresh
+POST /api/auth/logout
+GET  /api/auth/me               [JWT]
+GET  /api/auth/config           → cookie_mode, oidc, ldap, four_eyes
+POST /api/auth/register         [JWT admin]
+POST /api/auth/mfa/setup|enable|disable  [JWT]
+GET  /api/auth/oidc/login
+GET  /api/auth/oidc/callback
+```
+
+### Users / settings
+
+```
+GET   /api/users                [JWT admin]
+PATCH /api/users/<id>           [JWT admin] { role?, is_active?, ... }
+GET   /api/settings/webhook-key [JWT admin]
+POST  /api/settings/webhook-key/rotate [JWT admin]
 ```
 
 ### Incidentes
@@ -227,47 +246,45 @@ POST /api/iocs/:id/block      [JWT analyst|admin]
 ### Playbooks
 
 ```
-GET  /api/playbooks           [JWT]
-POST /api/playbooks/run       [JWT admin]
-     { playbook_id, params?, confirm: true }
-     Acciones destructivas (isolate_host, block_ip, revoke_user)
-     exigen confirm=true. Sin credenciales → mode=simulated.
-     Con integración ejecutable → HTTP real (mode=live).
-GET  /api/integrations/status [JWT]
-     respuesta.executable.{isolate_host,block_ip,...}
+GET  /api/playbooks                 [JWT]
+POST /api/playbooks/run             [JWT admin]
+     { playbook_id, params?, confirm: true, force_direct? }
+     → 200 ejecutado | 202 pending_approval (4-eyes)
+GET  /api/playbooks/approvals       [JWT admin]
+POST /api/playbooks/approvals/<id>/approve|reject  [JWT admin]
+GET  /api/integrations/status       [JWT]
 ```
 
 ### Códigos de respuesta habituales
 
 | Código | Significado |
 |--------|-------------|
-| 200 | OK |
-| 201 | Creado (webhook, registro) |
-| 400 | Datos inválidos |
-| 401 | Token ausente/inválido o API Key incorrecta |
-| 403 | Rol insuficiente |
-| 404 | Recurso no encontrado |
-| 409 | Usuario/email duplicado |
+| 200 | OK / duplicado webhook |
+| 201 | Creado |
+| 202 | Playbook pendiente 4-eyes |
+| 400 | Datos inválidos / falta confirm |
+| 401 | Auth / API Key / MFA |
+| 403 | Rol insuficiente / auto-aprobación 4-eyes |
+| 404 | No encontrado |
+| 409 | Duplicado usuario |
+| 503 | Health degraded |
 
 ---
 
 ## 8. Servicios de negocio
 
-### `ioc_enrichment.py`
-
-| Función | Descripción |
-|---------|-------------|
-| `detect_ioc_type()` | Clasifica IP, hash o URL por regex |
-| `simulate_abuseipdb()` | Score determinístico simulado |
-| `simulate_virustotal()` | Contadores simulados VT |
-| `enrich_ioc()` | Orquesta enriquecimiento y veredicto |
-| `run_playbook()` | Simula ejecución de playbook |
-
-> En producción, sustituir simuladores por clientes HTTP reales a AbuseIPDB/VirusTotal con API keys en variables de entorno.
-
-### `helpers.log_action()`
-
-Registra acciones en `audit_logs` usando el usuario del JWT actual. Llamado desde rutas de IOCs, playbooks y registro.
+| Módulo | Responsabilidad |
+|--------|-----------------|
+| `ioc_enrichment.py` | Regex + simuladores deterministas |
+| `ioc_service.py` | Orquesta live/simulado + veredicto |
+| `external_clients.py` | HTTP AbuseIPDB / VirusTotal |
+| `playbook_runners.py` | EDR / firewall / AD / callback |
+| `kev_sync.py` | Feed CISA KEV |
+| `pdf_report.py` | Informe PDF |
+| `oidc_auth.py` / `ldap_auth.py` / `auth_cookies.py` | Auth avanzada |
+| `metrics.py` | Prometheus |
+| `settings_store.py` | `app_settings` (webhook key) |
+| `bootstrap.py` / `seed.py` | Primer admin / demo |
 
 ---
 
@@ -276,17 +293,18 @@ Registra acciones en `audit_logs` usando el usuario del JWT actual. Llamado desd
 ### Enrutamiento (`App.tsx`)
 
 ```
-/login                    → LoginPage (pública)
-/                         → DashboardPage (protegida)
-/iocs                     → IOCsPage
-/vulnerabilities          → VulnerabilitiesPage
-/playbooks                → PlaybooksPage
-*                         → redirect /
+/login           → LoginPage (pública)
+/                → DashboardPage
+/iocs            → IOCsPage
+/vulnerabilities → VulnerabilitiesPage
+/playbooks       → PlaybooksPage
+/admin           → UsersPage (AdminRoute)
+*                → redirect /
 ```
 
 ### Proxy de desarrollo
 
-`vite.config.ts` redirige `/api/*` a `http://localhost:5000`, evitando problemas CORS en dev.
+`vite.config.ts` redirige `/api/*` a `http://localhost:5000`.
 
 ### Convenciones UI
 
@@ -341,66 +359,70 @@ cd ../backend && python run.py
 
 Flask sirve `frontend/dist/` en `/` y la API en `/api/*`.
 
-### Producción recomendada
-
-| Componente | Recomendación |
-|------------|---------------|
-| Reverse proxy | **Nginx o Caddy** en `:443` — ver [`deploy/README.md`](../deploy/README.md) |
-| WSGI | Gunicorn (`wsgi:app`) vía systemd, solo `127.0.0.1:5000` |
-| Frontend | Nginx sirve `frontend/dist/`; `/api/*` → Gunicorn |
-| BD | PostgreSQL (`DATABASE_URL`) |
-| Secrets | `.env` con claves ≥ 32 bytes, `ENABLE_SEED=false` |
-| HTTPS | Obligatorio; certbot o CA interna |
-| Proxy headers | `BEHIND_PROXY=true` activa `ProxyFix` en Flask |
+### Docker Compose
 
 ```bash
-# Build producción
-./deploy/scripts/build-production.sh
-
-# Arranque WSGI (manual)
-cd backend && gunicorn -w 4 -b 127.0.0.1:5000 wsgi:app
+cp .env.docker.example .env   # secretos ≥ 32 chars
+docker compose up -d
+# Observabilidad:
+docker compose --profile observability up -d
 ```
+
+Servicios: `db` (Postgres), `backend` (Gunicorn), `frontend` (Nginx :80). Profile `observability`: Prometheus + Grafana. Ver `deploy/README.md`.
 
 ---
 
-## 12. Testing manual con curl
+## 12. Testing
+
+### Manual (curl)
 
 ```bash
-# Login
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
-# Stats (sustituir TOKEN)
-curl http://localhost:5000/api/incidents/stats \
-  -H "Authorization: Bearer TOKEN"
+curl http://localhost:5000/api/incidents/stats -H "Authorization: Bearer TOKEN"
 
-# Webhook
 curl -X POST http://localhost:5000/api/webhooks/alert \
   -H "Content-Type: application/json" \
   -H "X-API-Key: secops-webhook-key-dev" \
-  -d '{"title":"Test","severity":"high"}'
+  -d '{"title":"Test","severity":"high","source":"lab"}'
 ```
+
+### Automatizado
+
+```bash
+cd backend
+pytest
+```
+
+Tests en `backend/tests/` (auth, webhooks, four_eyes, enrich/health).
+
+### Formación
+
+Notebooks en `formacion/` (sin Flask para las prácticas 01–03). Ver `formacion/README.md`.
 
 ---
 
 ## 13. Dependencias principales
 
-### Backend (`requirements.txt`)
+### Backend
 
-- `flask`, `flask-cors`, `flask-sqlalchemy`, `flask-jwt-extended`, `werkzeug`, `python-dotenv`
+`flask`, `flask-jwt-extended`, `flask-sqlalchemy`, `requests`, `reportlab`, `gunicorn`, `psycopg`, `prometheus-client`, `pyotp`, `ldap3`, `alembic`, `pytest`
 
-### Frontend (`package.json`)
+### Frontend
 
-- `react`, `react-dom`, `react-router-dom`, `axios`, `recharts`, `lucide-react`, `tailwindcss`
+`react`, `react-router-dom`, `axios`, `recharts`, `lucide-react`, `tailwindcss`
 
 ---
 
-## 14. Puntos de extensión futuros
+## 14. Puntos de extensión / próximos pasos
 
-- Integración real con AbuseIPDB / VirusTotal
-- Migraciones con Flask-Migrate (Alembic)
+- Completar llamadas HTTP finales a EDR/firewall/Graph (scaffolding en `playbook_runners.py`)
 - WebSockets para alertas en tiempo real
-- Página de registro de usuarios en frontend
-- Tests automatizados (pytest + Vitest)
-- Rate limiting y auditoría de webhooks
+- Restringir `CORS_ORIGINS` en producción
+- Ampliar cobertura de tests E2E
+
+Ya implementado (no listar como futuro): MFA, OIDC, LDAP, VT/AbuseIPDB live, 4-eyes, KEV sync, Docker, Prometheus, `formacion/`.
+
+Referencias: [requisitos.md](requisitos.md) · [casos-de-uso.md](casos-de-uso.md) · [diagramas-uml.md](diagramas-uml.md) · [runbook-operacion.md](runbook-operacion.md)

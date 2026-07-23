@@ -14,49 +14,47 @@ Este manual está dirigido a **analistas de seguridad** y **administradores** qu
 |-----------|---------|
 | Navegador | Chrome, Firefox o Edge (versiones recientes) |
 | URL desarrollo | http://localhost:5173 |
-| URL alternativa | http://localhost:5000 (build de producción) |
-| Credenciales | Proporcionadas por el administrador del sistema |
+| URL unificada (build / Docker) | http://localhost:5000 o http://localhost:80 |
+| Credenciales | Proporcionadas por el administrador |
 
-### Usuarios de demostración
+### Usuarios de demostración (solo con `ENABLE_SEED=true`)
 
 | Usuario | Contraseña | Rol | Capacidades principales |
 |---------|------------|-----|-------------------------|
-| `admin` | `admin123` | Administrador | Todo lo del analista + ejecutar playbooks + registrar usuarios (API) |
-| `analyst` | `analyst123` | Analista | Dashboard, IOCs, vulnerabilidades, consulta de playbooks |
+| `admin` | `admin123` | Administrador | Todo + playbooks, Admin UI, sync KEV, rotar webhook |
+| `analyst` | `analyst123` | Analista | Dashboard, IOCs, vulns, PDF; sin ejecutar playbooks |
 
-> **Nota de seguridad:** Cambie las contraseñas demo antes de usar la plataforma en un entorno real.
+> En producción use `ENABLE_SEED=false` y cree el admin con bootstrap / script.
 
 ---
 
 ## 3. Inicio de sesión
 
-1. Abra la URL de la aplicación en el navegador.
-2. Introduzca su **usuario** y **contraseña**.
-3. Pulse **Iniciar sesión**.
+1. Abra la URL de la aplicación.
+2. Introduzca **usuario** y **contraseña**.
+3. Si tiene **MFA** activado, introduzca el código de su app Authenticator.
+4. Si la organización tiene **SSO (OIDC)** habilitado, use el botón *Continuar con SSO*.
+5. Pulse **Iniciar sesión**.
 
-Si las credenciales son incorrectas, verá el mensaje *"Credenciales inválidas"*. Si cierra sesión o el token expira (8 horas), será redirigido automáticamente al login.
+La sesión usa JWT (access ~8 h). El cliente puede renovar con refresh token antes de pedirle de nuevo la contraseña.
 
 ### Cierre de sesión
 
-En la barra lateral inferior, pulse **Cerrar sesión**. El token JWT se elimina del navegador.
+En la barra lateral, pulse **Cerrar sesión**. Se limpian tokens/cookies.
 
 ---
 
 ## 4. Interfaz general
 
-La aplicación usa un diseño **dark mode** orientado a entornos SOC:
-
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  SIDEBAR          │  ÁREA PRINCIPAL                     │
-│  ─────────        │  ───────────────                    │
-│  SecOps Hub       │  Título de la sección               │
-│                   │  Contenido (tarjetas, tablas,       │
-│  • Dashboard      │  gráficos, formularios)             │
+│  SecOps Hub       │                                     │
+│  • Dashboard      │  Contenido de la sección            │
 │  • IOCs           │                                     │
 │  • Vulnerabilid.  │                                     │
 │  • Playbooks      │                                     │
-│                   │                                     │
+│  • Admin          │  (solo rol admin)                   │
 │  [Usuario/Rol]    │                                     │
 │  [Cerrar sesión]  │                                     │
 └─────────────────────────────────────────────────────────┘
@@ -116,9 +114,10 @@ Módulo para analizar indicadores de compromiso (IPs, hashes, URLs).
 3. Revise el resultado:
    - **Veredicto:** `MALICIOUS`, `SUSPICIOUS` o `CLEAN`
    - **Puntuación de riesgo:** 0–100
-   - **VirusTotal (simulado):** detecciones maliciosas, sospechosas, limpias
-   - **AbuseIPDB (simulado):** solo para direcciones IP
+   - **VirusTotal / AbuseIPDB:** live si hay API keys configuradas; si no, **simulado** (badge en la UI)
    - **Recomendación:** bloquear o monitorizar
+
+> El modo (`enrichment_mode`) indica si los datos vienen de APIs reales o del simulador pedagógico.
 
 ### Tabla de IOCs registrados
 
@@ -183,16 +182,14 @@ Automatizaciones de respuesta a incidentes.
 
 ### Ejecutar un playbook
 
-1. Si es **administrador**, rellene los parámetros.
-2. Pulse **Ejecutar** y confirme el diálogo (acciones destructivas).
-3. El backend exige `confirm=true`. Sin integración configurada responde en modo **simulado**; con credenciales ejecuta **HTTP real**.
-4. El resultado (éxito o error live) aparece en *Resultados de ejecución*.
+1. Como **administrador**, rellene parámetros y pulse **Ejecutar** (confirme el diálogo).
+2. El backend exige `confirm=true` en acciones destructivas.
+3. Sin integración → modo **simulado**; con credenciales → **live**.
+4. Si `PLAYBOOK_FOUR_EYES` está activo, las acciones destructivas quedan **pendientes** hasta que **otro** admin apruebe o rechace en la cola de aprobaciones.
 
-> Los usuarios con rol **analyst** pueden ver los playbooks pero **no ejecutarlos**.
+> Los **analyst** ven los playbooks pero no los ejecutan.
 
 ### Webhook de alertas externas
-
-Sistemas externos (SIEM, EDR, etc.) pueden enviar alertas mediante:
 
 ```http
 POST /api/webhooks/alert
@@ -201,53 +198,69 @@ Content-Type: application/json
 
 {
   "title": "Alerta desde SIEM",
-  "description": "Detalle del evento",
   "severity": "high",
-  "source": "Splunk"
+  "source": "Splunk",
+  "src_ip": "203.0.113.50",
+  "external_id": "splunk-88421"
 }
 ```
 
-Las alertas recibidas se registran como nuevos incidentes en el dashboard.
+Soporta idempotencia (`Idempotency-Key` / `external_id`) para no duplicar incidentes. La clave puede rotarse desde **Admin**.
 
 ---
 
-## 9. Matriz de permisos por rol
+## 9. Administración (`/admin`)
+
+Solo rol **admin**.
+
+| Acción | Descripción |
+|--------|-------------|
+| Crear usuarios | Username, email, password, rol |
+| Listar / editar | Cambiar rol o desactivar (`is_active`) |
+| MFA | Setup TOTP (QR / otpauth) y activar |
+| Webhook key | Ver meta enmascarada y **rotar** (copiar clave una vez) |
+
+---
+
+## 10. Matriz de permisos por rol
 
 | Funcionalidad | Admin | Analyst |
 |---------------|:-----:|:-------:|
-| Ver dashboard | ✓ | ✓ |
-| Ver vulnerabilidades | ✓ | ✓ |
-| Enriquecer / bloquear IOCs | ✓ | ✓ |
-| Consultar playbooks | ✓ | ✓ |
-| **Ejecutar playbooks** | ✓ | ✗ |
-| Registrar usuarios (API) | ✓ | ✗ |
+| Dashboard / IOCs / Vulns / PDF | ✓ | ✓ |
+| Sync CISA KEV | ✓ | ✗ |
+| Ejecutar playbooks | ✓ | ✗ |
+| Aprobar playbooks 4-eyes | ✓ | ✗ |
+| Página Admin / usuarios | ✓ | ✗ |
+| Rotar webhook key | ✓ | ✗ |
+| Activar MFA propio | ✓ | ✓ |
 
 ---
 
-## 10. Resolución de problemas
+## 11. Resolución de problemas
 
 | Problema | Solución |
 |----------|----------|
-| Redirige al login constantemente | Token expirado (8 h) o inválido; vuelva a iniciar sesión |
-| Error 403 en IOCs | Su usuario no tiene rol analyst/admin |
-| No puedo ejecutar playbooks | Solo administradores pueden ejecutarlos |
-| Página en blanco en :5000 | Asegúrese de que el backend está activo; use :5173 en desarrollo |
-| Gráficos vacíos | Compruebe que hay datos de incidentes en la base de datos |
+| Pide código MFA | Introduzca OTP de Authenticator; si perdió el factor, un admin debe desactivar MFA |
+| Playbook queda pendiente | Four-eyes activo: otro admin debe aprobar |
+| 403 en playbooks / Admin | Su usuario no es admin |
+| Tras rotar webhook, SIEM falla | Actualice `X-API-Key` en Splunk/QRadar/Wazuh |
+| Token / sesión caducada | El cliente intenta refresh; si falla, vuelva a login |
+| Página en blanco en :5000 | Backend activo; en Docker use el puerto del frontend |
 
 ---
 
-## 11. Glosario
+## 12. Glosario
 
-Consulta el **[Diccionario completo de términos](diccionario.md)** (80+ entradas con ejemplos).
+Consulta el **[Diccionario completo](diccionario.md)** y la **[Guía de carpetas](guia-carpetas.md)** (para no técnicos).
 
 | Término | Definición breve |
 |---------|------------------|
-| **IOC** | Indicador de compromiso (IP, hash, URL maliciosa) |
-| **KEV** | Known Exploited Vulnerabilities — catálogo CISA de CVEs explotados activamente |
-| **Playbook** | Secuencia automatizada de respuesta a incidentes |
-| **SOC** | Security Operations Center — centro de operaciones de seguridad |
-| **JWT** | JSON Web Token — credencial de sesión tras el login |
-| **RBAC** | Control de acceso basado en roles (admin / analyst) |
-| **SIEM** | Plataforma que centraliza logs y genera alertas (Splunk, QRadar) |
-| **EDR** | Detección y respuesta en endpoints (Defender, CrowdStrike) |
-| **Webhook** | Notificación HTTP automática entre sistemas (SIEM → SecOps Hub) |
+| **IOC** | Indicador de compromiso |
+| **KEV** | Catálogo CISA de CVEs explotados |
+| **Playbook** | Respuesta automatizada |
+| **Four-eyes** | Doble autorización admin |
+| **MFA / TOTP** | Segundo factor |
+| **OIDC / SSO** | Login corporativo |
+| **Webhook** | Alerta SIEM → Hub |
+
+Prácticas Jupyter: carpeta [`formacion/`](../formacion/README.md).

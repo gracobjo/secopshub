@@ -14,6 +14,7 @@ graph TB
         A[Administrador]
         AN[Analista]
         EXT[Sistema Externo SIEM/EDR]
+        IDP[IdP OIDC / LDAP]
     end
 
     subgraph SecOps Hub
@@ -25,8 +26,14 @@ graph TB
         UC6((Consultar vulnerabilidades))
         UC7((Ejecutar playbook))
         UC8((Consultar playbooks))
-        UC9((Registrar usuario))
+        UC9((Gestionar usuarios))
         UC10((Enviar alerta webhook))
+        UC12((Activar MFA))
+        UC13((Login SSO))
+        UC14((Rotar webhook key))
+        UC15((Sync CISA KEV))
+        UC17((Exportar PDF))
+        UC18((Aprobar playbook 4-eyes))
     end
 
     A --> UC1
@@ -46,14 +53,26 @@ graph TB
     AN --> UC8
     A --> UC9
     EXT --> UC10
+    A --> UC12
+    AN --> UC12
+    A --> UC13
+    AN --> UC13
+    IDP --> UC13
+    A --> UC14
+    A --> UC15
+    A --> UC17
+    AN --> UC17
+    A --> UC18
 
     UC7 -.include.-> UC8
+    UC7 -.extend.-> UC18
     UC4 -.extend.-> UC5
 ```
 
 **Leyenda:**
 - **Include:** Ejecutar playbook incluye consultar catálogo
-- **Extend:** Bloquear IOC extiende enriquecimiento (opcional tras análisis)
+- **Extend:** Bloquear IOC tras enriquecimiento; 4-eyes extiende ejecución destructiva
+- Detalle de flujos: [casos-de-uso.md](casos-de-uso.md) (CU-01 … CU-18)
 
 ---
 
@@ -69,6 +88,10 @@ classDiagram
         +string email
         +string password_hash
         +string role
+        +bool is_active
+        +bool mfa_enabled
+        +string mfa_secret
+        +string auth_source
         +datetime created_at
         +set_password(password)
         +check_password(password) bool
@@ -82,6 +105,9 @@ classDiagram
         +string severity
         +string status
         +string source
+        +string external_id
+        +string src_ip
+        +string hostname
         +string assigned_to
         +datetime created_at
         +datetime updated_at
@@ -123,10 +149,26 @@ classDiagram
         +to_dict() dict
     }
 
+    class AppSetting {
+        +string key
+        +string value
+    }
+
+    class PlaybookApproval {
+        +int id
+        +string playbook_id
+        +string status
+        +int requested_by
+        +int approved_by
+        +json params
+        +datetime created_at
+    }
+
     User "1" --> "0..*" AuditLog : genera
+    User "1" --> "0..*" PlaybookApproval : solicita
 ```
 
-**Archivo fuente:** `backend/app/models/__init__.py`
+**Archivo fuente:** `backend/app/models/__init__.py` (MFA, AppSetting, PlaybookApproval)
 
 ---
 
@@ -134,30 +176,38 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class IOEnrichmentService {
+    class IocEnrichment {
         +detect_ioc_type(value) string
         +simulate_abuseipdb(ip) dict
         +simulate_virustotal(value, type) dict
+    }
+
+    class IocService {
         +enrich_ioc(value) dict
+    }
+
+    class ExternalClients {
+        +AbuseIPDBClient
+        +VirusTotalClient
+    }
+
+    class PlaybookRunners {
         +run_playbook(id, params) dict
     }
 
-    class SeedService {
-        +seed_database() void
+    class AuthExtras {
+        +MFA_TOTP
+        +OIDC
+        +LDAP
     }
 
-    class AuthService {
-        +login(username, password) token
-        +register(data) user
-        +get_profile(user_id) user
+    class Metrics {
+        +observe_request()
+        +metrics_response()
     }
 
-    class AuditHelper {
-        +log_action(action, details) void
-    }
-
-    IOEnrichmentService ..> IOC : persiste
-    AuthService ..> User : gestiona
+    IocService ..> IocEnrichment : fallback
+    IocService ..> ExternalClients : live
     AuditHelper ..> AuditLog : crea
     SeedService ..> User : inicializa
     SeedService ..> Incident : inicializa
@@ -326,6 +376,8 @@ graph TB
 ---
 
 ## 9. Diagrama de despliegue
+
+> **Actualizacion:** Docker Compose (`db`, `backend`, `frontend:80`) y profile `observability` (Prometheus/Grafana). Ver `docker-compose.yml`, `deploy/README.md` e `infraestructura_red_secops_hub.svg`.
 
 ```mermaid
 graph TB
@@ -553,6 +605,24 @@ stateDiagram-v2
     clean --> [*]
     blocked --> [*]
 ```
+
+---
+
+
+## 15b. Diagrama de estados — PlaybookApproval (4-eyes)
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: solicitud admin
+    pending --> executed: aprueba otro admin
+    pending --> rejected: rechaza otro admin
+    pending --> failed: error al ejecutar
+    executed --> [*]
+    rejected --> [*]
+    failed --> [*]
+```
+
+Incidentes: `open` | `investigating` | `resolved` | `closed`.
 
 ---
 
