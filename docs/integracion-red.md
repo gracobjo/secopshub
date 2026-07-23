@@ -14,6 +14,10 @@ SecOps Hub actúa como **consola central de operaciones**. No sustituye al SIEM 
 
 ![Flujo de red SecOps Hub](flujo_red_secops_hub.svg)
 
+![Infraestructura de red (Internet · perímetro · LAN)](infraestructura_red_secops_hub.svg)
+
+> **Ver SVG en Cursor:** por defecto se abre como XML. Instala la extensión **SVG** (`jock.svg`) y usa `Ctrl+Shift+P` → **SVG: Open Preview**. Guía: [docs/README.md](README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).
+
 ### Cuatro direcciones de comunicación
 
 | # | Dirección | Mecanismo | Autenticación |

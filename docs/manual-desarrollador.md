@@ -309,6 +309,10 @@ Registra acciones en `audit_logs` usando el usuario del JWT actual. Llamado desd
 7. **Ruta React** → `App.tsx` + enlace en `Sidebar.tsx`
 8. **Documentación** → actualizar `docs/`
 
+### Diagramas SVG en el IDE
+
+Los SVG de `docs/` (red, infraestructura) requieren la extensión **SVG** (`jock.svg`) para vista previa en Cursor/VS Code (`SVG: Open Preview`). Guía: [README de docs](README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).
+
 ### Ejemplo: restricción por rol
 
 ```python

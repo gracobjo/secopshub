@@ -10,6 +10,10 @@ Documento maestro: idea central, flujo operativo, integraciones por producto y p
 
 ![Flujo de red](flujo_red_secops_hub.svg)
 
+![Infraestructura Internet · perímetro · LAN](infraestructura_red_secops_hub.svg)
+
+> Vista previa SVG en Cursor: extensión **SVG** (`jock.svg`) → **SVG: Open Preview**. Ver [docs/README.md](README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).
+
 ### Capas de comunicación
 
 | Capa | Dirección | Mecanismo | Estado hoy |

@@ -16,6 +16,10 @@ Prototipo educativo orientado a la **automatización de operaciones de cibersegu
 
 ![Flujo de red corporativa](docs/flujo_red_secops_hub.svg)
 
+![Infraestructura Internet · perímetro · LAN](docs/infraestructura_red_secops_hub.svg)
+
+> En Cursor/VS Code los `.svg` se abren como XML: instala la extensión **SVG** (`jock.svg`) y usa **SVG: Open Preview**. Detalle en [`docs/README.md`](docs/README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).
+
 Cuatro direcciones de comunicación dentro de la red corporativa:
 
 - **SIEM → SecOps Hub** — ingesta de alertas por webhook (`X-API-Key`)

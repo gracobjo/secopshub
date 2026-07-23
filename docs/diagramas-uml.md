@@ -580,10 +580,26 @@ stateDiagram-v2
 
 ## 17. Cómo visualizar
 
-Los diagramas Mermaid se renderizan automáticamente en:
+### Diagramas Mermaid (este documento)
+
+Se renderizan automáticamente en:
 
 - GitHub / GitLab (vista previa Markdown)
-- VS Code / Cursor con extensión Markdown Preview
+- VS Code / Cursor con extensión Markdown Preview (`Ctrl+Shift+V`)
 - [Mermaid Live Editor](https://mermaid.live)
 
 Para exportar a PNG/SVG, pegue el código en Mermaid Live Editor y use **Export**.
+
+### Diagramas SVG (`docs/*.svg`)
+
+Archivos como `flujo_red_secops_hub.svg` e `infraestructura_red_secops_hub.svg` **no** se muestran como imagen al abrirlos en Cursor/VS Code sin extensión: solo se ve el XML.
+
+| Extensión | ID | Uso |
+|-----------|-----|-----|
+| **SVG** (autor: jock) | `jock.svg` | `Ctrl+Shift+P` → **SVG: Open Preview** |
+
+**Instalación rápida:** Extensiones (`Ctrl+Shift+X`) → buscar `jock.svg` → Install.
+
+**Alternativas:** vista previa Markdown del documento que embebe el SVG, o abrir el archivo en el navegador.
+
+Más detalle: [docs/README.md — Cómo ver los diagramas SVG](README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).

@@ -884,6 +884,14 @@ Aplicación web que carga una sola página HTML y navega sin recargas completas 
 
 ---
 
+### SVG (diagrama vectorial)
+
+Formato de gráfico vectorial usado en `docs/` para diagramas de red e infraestructura. En Cursor/VS Code se abre como XML salvo que se use una extensión de vista previa.
+
+**Ejemplo:** Extensión **SVG** (`jock.svg`) → comando **SVG: Open Preview** sobre `infraestructura_red_secops_hub.svg`. Ver [docs/README.md](README.md#cómo-ver-los-diagramas-svg-en-cursor--vs-code).
+
+---
+
 ### Splunk
 
 SIEM líder que indexa logs y permite alertas con acciones webhook.
