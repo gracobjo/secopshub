@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" role="img" aria-labelledby="title desc">
-  <title id="title">Infraestructura de red  SecOps Hub</title>
-  <desc id="desc">Diagrama de infraestructura: Internet, perÌmetro (firewall NGFW e IPS), DMZ, LAN corporativa con IDS, SIEM, SecOps Hub, EDR, AD y endpoints.</desc>
+  <title id="title">Infraestructura de red - SecOps Hub</title>
+  <desc id="desc">Diagrama de infraestructura: Internet, perimetro (firewall NGFW e IPS), DMZ, LAN corporativa con IDS, SIEM, SecOps Hub, EDR, AD y endpoints.</desc>
 
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -32,171 +32,146 @@
     <marker id="arrRose" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
       <polygon points="0 0, 9 3.5, 0 7" fill="#fb7185"/>
     </marker>
-    <filter id="sh" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
-    </filter>
   </defs>
 
   <rect width="1100" height="720" fill="url(#bg)"/>
 
-  <!-- TÌtulo -->
-  <text x="550" y="28" text-anchor="middle" fill="#e2e8f0" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Infraestructura de red necesaria  SecOps Hub</text>
-  <text x="550" y="48" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="11">Internet ∑ PerÌmetro ∑ DMZ ∑ LAN corporativa (sin exposiciÛn directa del Hub)</text>
+  <text x="550" y="28" text-anchor="middle" fill="#e2e8f0" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">Infraestructura de red necesaria - SecOps Hub</text>
+  <text x="550" y="48" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="11">Internet | Perimetro | DMZ | LAN corporativa (sin exposicion directa del Hub)</text>
 
-  <!-- ========== INTERNET ========== -->
+  <!-- INTERNET -->
   <rect x="40" y="65" width="200" height="600" rx="14" fill="url(#inetGrad)" stroke="#991b1b" stroke-width="2"/>
   <text x="140" y="92" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">INTERNET</text>
   <text x="140" y="110" text-anchor="middle" fill="#f87171" font-family="Segoe UI, Arial, sans-serif" font-size="9">Zona no confiable</text>
 
   <rect x="60" y="130" width="160" height="55" rx="8" fill="#1c1917" stroke="#f87171" stroke-width="1.2"/>
   <text x="140" y="152" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">Amenazas / actores</text>
-  <text x="140" y="170" text-anchor="middle" fill="#fca5a5" font-family="Segoe UI, Arial, sans-serif" font-size="9">Malware ∑ C2 ∑ escaneos</text>
+  <text x="140" y="170" text-anchor="middle" fill="#fca5a5" font-family="Segoe UI, Arial, sans-serif" font-size="9">Malware | C2 | escaneos</text>
 
   <rect x="60" y="205" width="160" height="55" rx="8" fill="#1c1917" stroke="#fb923c" stroke-width="1.2"/>
   <text x="140" y="227" text-anchor="middle" fill="#ffedd5" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">Threat Intel (salida)</text>
-  <text x="140" y="245" text-anchor="middle" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="9">VirusTotal ∑ AbuseIPDB</text>
+  <text x="140" y="245" text-anchor="middle" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="9">VirusTotal | AbuseIPDB</text>
 
   <rect x="60" y="280" width="160" height="55" rx="8" fill="#1c1917" stroke="#a78bfa" stroke-width="1.2"/>
   <text x="140" y="302" text-anchor="middle" fill="#ede9fe" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">Cloud IdP / APIs</text>
-  <text x="140" y="320" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI, Arial, sans-serif" font-size="9">Entra ID ∑ Defender cloud</text>
+  <text x="140" y="320" text-anchor="middle" fill="#c4b5fd" font-family="Segoe UI, Arial, sans-serif" font-size="9">Entra ID | Defender cloud</text>
 
-  <text x="140" y="380" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="600">† SecOps Hub</text>
-  <text x="140" y="396" text-anchor="middle" fill="#f87171" font-family="Segoe UI, Arial, sans-serif" font-size="9">NO expuesto aquÌ</text>
+  <text x="140" y="380" text-anchor="middle" fill="#fecaca" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="600">[!] SecOps Hub</text>
+  <text x="140" y="396" text-anchor="middle" fill="#f87171" font-family="Segoe UI, Arial, sans-serif" font-size="9">NO expuesto aqui</text>
   <line x1="90" y1="410" x2="190" y2="410" stroke="#f87171" stroke-width="2"/>
   <line x1="90" y1="405" x2="90" y2="415" stroke="#f87171" stroke-width="2"/>
   <line x1="190" y1="405" x2="190" y2="415" stroke="#f87171" stroke-width="2"/>
 
-  <!-- Flecha tr·fico entrante -->
   <line x1="245" y1="200" x2="285" y2="200" stroke="#fb7185" stroke-width="2" marker-end="url(#arrRose)"/>
-  <text x="265" y="190" text-anchor="middle" fill="#fb7185" font-family="Segoe UI, Arial, sans-serif" font-size="8">tr·fico</text>
+  <text x="265" y="190" text-anchor="middle" fill="#fb7185" font-family="Segoe UI, Arial, sans-serif" font-size="8">trafico</text>
 
-  <!-- ========== PERÕMETRO ========== -->
+  <!-- PERIMETRO -->
   <rect x="290" y="65" width="150" height="600" rx="14" fill="#1c1917" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 3"/>
-  <text x="365" y="92" text-anchor="middle" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">PERÕMETRO</text>
+  <text x="365" y="92" text-anchor="middle" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">PERIMETRO</text>
 
-  <!-- Firewall / NGFW -->
-  <rect x="305" y="120" width="120" height="100" rx="10" fill="#431407" stroke="#fb923c" stroke-width="2" filter="url(#sh)"/>
+  <rect x="305" y="120" width="120" height="100" rx="10" fill="#431407" stroke="#fb923c" stroke-width="2"/>
   <text x="365" y="150" text-anchor="middle" fill="#ffedd5" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">Firewall</text>
   <text x="365" y="168" text-anchor="middle" fill="#fdba74" font-family="Segoe UI, Arial, sans-serif" font-size="10">NGFW</text>
   <text x="365" y="188" text-anchor="middle" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="9">Palo Alto</text>
   <text x="365" y="203" text-anchor="middle" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="9">pfSense</text>
 
-  <!-- IPS -->
-  <rect x="305" y="250" width="120" height="90" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2" filter="url(#sh)"/>
+  <rect x="305" y="250" width="120" height="90" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
   <text x="365" y="280" text-anchor="middle" fill="#fef3c7" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">IPS</text>
-  <text x="365" y="300" text-anchor="middle" fill="#fcd34d" font-family="Segoe UI, Arial, sans-serif" font-size="9">Inline ∑ bloquea</text>
+  <text x="365" y="300" text-anchor="middle" fill="#fcd34d" font-family="Segoe UI, Arial, sans-serif" font-size="9">Inline - bloquea</text>
   <text x="365" y="318" text-anchor="middle" fill="#fbbf24" font-family="Segoe UI, Arial, sans-serif" font-size="9">exploits / C2</text>
 
-  <!-- VPN gateway -->
   <rect x="305" y="370" width="120" height="70" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
   <text x="365" y="398" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">VPN</text>
   <text x="365" y="418" text-anchor="middle" fill="#93c5fd" font-family="Segoe UI, Arial, sans-serif" font-size="9">Analistas remotos</text>
 
-  <!-- Logs perÌmetro í SIEM -->
   <path d="M365 345 L365 360 L500 360 L500 200" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arr)"/>
   <text x="430" y="352" fill="#a78bfa" font-family="Segoe UI, Arial, sans-serif" font-size="8">logs / syslog</text>
 
-  <!-- ========== DMZ ========== -->
+  <!-- DMZ -->
   <rect x="460" y="65" width="155" height="200" rx="12" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="5 3"/>
   <text x="537" y="88" text-anchor="middle" fill="#c7d2fe" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">DMZ (opcional)</text>
 
   <rect x="475" y="105" width="125" height="55" rx="8" fill="#312e81" stroke="#a5b4fc" stroke-width="1.2"/>
   <text x="537" y="128" text-anchor="middle" fill="#e0e7ff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">Proxy / WAF</text>
-  <text x="537" y="145" text-anchor="middle" fill="#a5b4fc" font-family="Segoe UI, Arial, sans-serif" font-size="8">servicios p˙blicos</text>
+  <text x="537" y="145" text-anchor="middle" fill="#a5b4fc" font-family="Segoe UI, Arial, sans-serif" font-size="8">servicios publicos</text>
 
   <rect x="475" y="175" width="125" height="55" rx="8" fill="#312e81" stroke="#a5b4fc" stroke-width="1.2"/>
   <text x="537" y="198" text-anchor="middle" fill="#e0e7ff" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="600">Mail / DNS</text>
   <text x="537" y="215" text-anchor="middle" fill="#a5b4fc" font-family="Segoe UI, Arial, sans-serif" font-size="8">gateway</text>
 
-  <!-- Flecha perÌmetro í DMZ/LAN -->
   <line x1="440" y1="170" x2="458" y2="170" stroke="#fb923c" stroke-width="2" marker-end="url(#arrAmber)"/>
 
-  <!-- ========== LAN CORPORATIVA ========== -->
+  <!-- LAN -->
   <rect x="460" y="280" width="600" height="385" rx="16" fill="url(#lanGrad)" stroke="#334155" stroke-width="2"/>
   <text x="760" y="305" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">LAN CORPORATIVA (zona confiable)</text>
-  <text x="760" y="322" fill="#64748b" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="9">Solo SIEM y analistas (VLAN/VPN) í SecOps Hub :443 ∑ Hub no abierto a Internet</text>
+  <text x="760" y="322" fill="#64748b" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="9">Solo SIEM y analistas (VLAN/VPN) -&gt; SecOps Hub :443 - Hub no abierto a Internet</text>
 
-  <!-- IDS -->
-  <rect x="480" y="340" width="130" height="85" rx="10" fill="#164e63" stroke="#22d3ee" stroke-width="2" filter="url(#sh)"/>
+  <rect x="480" y="340" width="130" height="85" rx="10" fill="#164e63" stroke="#22d3ee" stroke-width="2"/>
   <text x="545" y="368" text-anchor="middle" fill="#cffafe" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">IDS</text>
-  <text x="545" y="386" text-anchor="middle" fill="#67e8f9" font-family="Segoe UI, Arial, sans-serif" font-size="9">Passive ∑ detecta</text>
+  <text x="545" y="386" text-anchor="middle" fill="#67e8f9" font-family="Segoe UI, Arial, sans-serif" font-size="9">Passive - detecta</text>
   <text x="545" y="404" text-anchor="middle" fill="#22d3ee" font-family="Segoe UI, Arial, sans-serif" font-size="9">SPAN / TAP</text>
 
-  <!-- SIEM -->
-  <rect x="640" y="340" width="150" height="85" rx="10" fill="#312e81" stroke="#818cf8" stroke-width="2" filter="url(#sh)"/>
+  <rect x="640" y="340" width="150" height="85" rx="10" fill="#312e81" stroke="#818cf8" stroke-width="2"/>
   <text x="715" y="365" text-anchor="middle" fill="#e0e7ff" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700">SIEM</text>
-  <text x="715" y="383" text-anchor="middle" fill="#c7d2fe" font-family="Segoe UI, Arial, sans-serif" font-size="9">Splunk ∑ QRadar</text>
+  <text x="715" y="383" text-anchor="middle" fill="#c7d2fe" font-family="Segoe UI, Arial, sans-serif" font-size="9">Splunk | QRadar</text>
   <text x="715" y="399" text-anchor="middle" fill="#a5b4fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">Wazuh (lab)</text>
   <text x="715" y="414" text-anchor="middle" fill="#818cf8" font-family="Segoe UI, Arial, sans-serif" font-size="8">VLAN SOC</text>
 
-  <!-- SecOps Hub -->
-  <rect x="820" y="335" width="210" height="95" rx="12" fill="url(#hubGrad)" stroke="#34d399" stroke-width="2.5" filter="url(#sh)"/>
+  <rect x="820" y="335" width="210" height="95" rx="12" fill="url(#hubGrad)" stroke="#34d399" stroke-width="2.5"/>
   <text x="925" y="365" text-anchor="middle" fill="#ecfdf5" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700">SecOps Hub</text>
-  <text x="925" y="385" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Arial, sans-serif" font-size="9">Consola SOC ∑ :443 HTTPS</text>
-  <text x="925" y="402" text-anchor="middle" fill="#6ee7b7" font-family="Segoe UI, Arial, sans-serif" font-size="9">Nginx + Gunicorn ∑ PostgreSQL</text>
-  <text x="925" y="418" text-anchor="middle" fill="#5eead4" font-family="Segoe UI, Arial, sans-serif" font-size="8">JWT ∑ Webhook ∑ Playbooks</text>
+  <text x="925" y="385" text-anchor="middle" fill="#a7f3d0" font-family="Segoe UI, Arial, sans-serif" font-size="9">Consola SOC | :443 HTTPS</text>
+  <text x="925" y="402" text-anchor="middle" fill="#6ee7b7" font-family="Segoe UI, Arial, sans-serif" font-size="9">Nginx + Gunicorn | PostgreSQL</text>
+  <text x="925" y="418" text-anchor="middle" fill="#5eead4" font-family="Segoe UI, Arial, sans-serif" font-size="8">JWT | Webhook | Playbooks</text>
 
-  <!-- Flecha IDS í SIEM -->
   <line x1="612" y1="382" x2="638" y2="382" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#arrTeal)"/>
   <text x="625" y="372" text-anchor="middle" fill="#22d3ee" font-family="Segoe UI, Arial, sans-serif" font-size="7">alertas</text>
 
-  <!-- Flecha SIEM í Hub (webhook) -->
   <line x1="792" y1="375" x2="818" y2="375" stroke="#34d399" stroke-width="2.2" marker-end="url(#arrTeal)"/>
-  <text x="805" y="365" text-anchor="middle" fill="#34d399" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="600">` webhook</text>
+  <text x="805" y="365" text-anchor="middle" fill="#34d399" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="600">(1) webhook</text>
 
-  <!-- VLAN Endpoints / EDR -->
   <rect x="480" y="450" width="250" height="95" rx="10" fill="#3b0764" stroke="#c084fc" stroke-width="1.5"/>
   <text x="605" y="475" text-anchor="middle" fill="#e9d5ff" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Endpoints + EDR</text>
-  <text x="605" y="495" text-anchor="middle" fill="#d8b4fe" font-family="Segoe UI, Arial, sans-serif" font-size="9">PCs ∑ servidores ∑ HR-042</text>
-  <text x="605" y="513" text-anchor="middle" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">Defender ∑ CrowdStrike</text>
-  <text x="605" y="530" text-anchor="middle" fill="#a855f7" font-family="Segoe UI, Arial, sans-serif" font-size="8">logs í SIEM ∑ isolate ê Hub</text>
+  <text x="605" y="495" text-anchor="middle" fill="#d8b4fe" font-family="Segoe UI, Arial, sans-serif" font-size="9">PCs | servidores | HR-042</text>
+  <text x="605" y="513" text-anchor="middle" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">Defender | CrowdStrike</text>
+  <text x="605" y="530" text-anchor="middle" fill="#a855f7" font-family="Segoe UI, Arial, sans-serif" font-size="8">logs -&gt; SIEM | isolate &lt;- Hub</text>
 
-  <!-- AD -->
   <rect x="755" y="450" width="130" height="95" rx="10" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1.5"/>
   <text x="820" y="480" text-anchor="middle" fill="#e0f2fe" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">AD / Entra</text>
   <text x="820" y="500" text-anchor="middle" fill="#7dd3fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">Identidades</text>
-  <text x="820" y="520" text-anchor="middle" fill="#38bdf8" font-family="Segoe UI, Arial, sans-serif" font-size="8">revoke_user ê Hub</text>
+  <text x="820" y="520" text-anchor="middle" fill="#38bdf8" font-family="Segoe UI, Arial, sans-serif" font-size="8">revoke_user &lt;- Hub</text>
 
-  <!-- Analistas -->
   <rect x="905" y="450" width="125" height="95" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
   <text x="967" y="480" text-anchor="middle" fill="#dbeafe" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700">Analistas</text>
   <text x="967" y="500" text-anchor="middle" fill="#93c5fd" font-family="Segoe UI, Arial, sans-serif" font-size="9">VLAN SOC / VPN</text>
-  <text x="967" y="520" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI, Arial, sans-serif" font-size="8">a JWT consola</text>
+  <text x="967" y="520" text-anchor="middle" fill="#60a5fa" font-family="Segoe UI, Arial, sans-serif" font-size="8">(2) JWT consola</text>
 
-  <!-- Playbook arrows -->
   <path d="M900 430 L900 445 L605 445 L605 450" fill="none" stroke="#c084fc" stroke-width="1.6" marker-end="url(#arr)"/>
-  <text x="780" y="442" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="8">b isolate_host</text>
+  <text x="780" y="442" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="8">(3) isolate_host</text>
 
   <line x1="925" y1="430" x2="925" y2="448" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr)"/>
-  <!-- revoke from hub to AD - already near -->
   <path d="M870 420 L820 420 L820 448" fill="none" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#arr)"/>
   <text x="845" y="414" fill="#38bdf8" font-family="Segoe UI, Arial, sans-serif" font-size="8">revoke</text>
 
-  <!-- Hub í Firewall (block_ip) - back to perimeter -->
   <path d="M925 335 L925 300 L365 300 L365 340" fill="none" stroke="#fb923c" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#arrAmber)"/>
-  <text x="640" y="292" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="600">c block_ip (playbook í NGFW API)</text>
+  <text x="640" y="292" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="8" font-weight="600">(4) block_ip (playbook -&gt; NGFW API)</text>
 
-  <!-- Analistas í Hub -->
   <line x1="967" y1="450" x2="967" y2="432" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#arr)"/>
 
-  <!-- Threat intel outbound note -->
   <path d="M820 380 L820 250 L245 250" fill="none" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
-  <text x="520" y="242" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="8">triaje: Hub í APIs threat intel (salida controlada)</text>
+  <text x="520" y="242" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="8">triaje: Hub -&gt; APIs threat intel (salida controlada)</text>
 
-  <!-- Leyenda -->
   <rect x="480" y="565" width="550" height="80" rx="8" fill="#020617" stroke="#334155" stroke-width="1"/>
   <text x="500" y="588" fill="#e2e8f0" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">Leyenda</text>
-  <text x="500" y="608" fill="#fb7185" font-family="Segoe UI, Arial, sans-serif" font-size="9">œ Internet  no confiable ∑ Hub denegado</text>
-  <text x="500" y="625" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="9">œ PerÌmetro  Firewall (filtra) + IPS (bloquea inline)</text>
-  <text x="500" y="642" fill="#22d3ee" font-family="Segoe UI, Arial, sans-serif" font-size="9">œ LAN  IDS (solo detecta) í SIEM í SecOps Hub</text>
-  <text x="780" y="608" fill="#34d399" font-family="Segoe UI, Arial, sans-serif" font-size="9">` Ingesta webhook</text>
-  <text x="780" y="625" fill="#60a5fa" font-family="Segoe UI, Arial, sans-serif" font-size="9">a Consola JWT analistas</text>
-  <text x="780" y="642" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">bc Respuesta playbooks</text>
+  <text x="500" y="608" fill="#fb7185" font-family="Segoe UI, Arial, sans-serif" font-size="9">* Internet - no confiable | Hub denegado</text>
+  <text x="500" y="625" fill="#fb923c" font-family="Segoe UI, Arial, sans-serif" font-size="9">* Perimetro - Firewall (filtra) + IPS (bloquea inline)</text>
+  <text x="500" y="642" fill="#22d3ee" font-family="Segoe UI, Arial, sans-serif" font-size="9">* LAN - IDS (solo detecta) -&gt; SIEM -&gt; SecOps Hub</text>
+  <text x="780" y="608" fill="#34d399" font-family="Segoe UI, Arial, sans-serif" font-size="9">(1) Ingesta webhook</text>
+  <text x="780" y="625" fill="#60a5fa" font-family="Segoe UI, Arial, sans-serif" font-size="9">(2) Consola JWT analistas</text>
+  <text x="780" y="642" fill="#c084fc" font-family="Segoe UI, Arial, sans-serif" font-size="9">(3)(4) Respuesta playbooks</text>
 
-  <!-- IDS vs IPS callout -->
-  <text x="140" y="520" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="600">IDS ` IPS</text>
-  <text x="140" y="538" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">IPS: perÌmetro, bloquea</text>
+  <text x="140" y="520" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Arial, sans-serif" font-size="9" font-weight="600">IDS != IPS</text>
+  <text x="140" y="538" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">IPS: perimetro, bloquea</text>
   <text x="140" y="552" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">IDS: LAN, alerta al SIEM</text>
-  <text x="140" y="580" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">Firewall: polÌticas</text>
+  <text x="140" y="580" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">Firewall: politicas</text>
   <text x="140" y="594" text-anchor="middle" fill="#64748b" font-family="Segoe UI, Arial, sans-serif" font-size="8">de red NGFW</text>
 </svg>
