@@ -100,6 +100,8 @@ secopsHub/
 | `01_python_automatizacion_secops.ipynb` | Qué librerías usa el proyecto y para qué |
 | `02_enriquecimiento_ioc.ipynb` | Cómo se analiza un indicador (IP, hash…) y se puntúa el riesgo |
 | `03_pipeline_alerta_respuesta.ipynb` | De la alerta al playbook (bloqueo, aislamiento…) con gráficos |
+| `04_kali_linux_instalacion_uso.md` | Instalar Kali en máquina virtual y usarlo en laboratorio |
+| `04_kali_linux_instalacion_uso.ipynb` | Checklist de clase y puente con IOCs |
 | `README.md` | Cómo instalar el entorno y abrir los notebooks |
 | `requirements-notebooks.txt` | Lista de paquetes necesarios solo para la formación |
 

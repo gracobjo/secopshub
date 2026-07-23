@@ -25,15 +25,17 @@ pip install -r requirements-notebooks.txt
 
 En VS Code: selecciona el kernel `.venv` de esta carpeta (o el de `backend/venv` tras instalar las deps de notebooks).
 
-## Notebooks
+## Notebooks y guías
 
 | # | Archivo | Contenido |
 |---|---------|-----------|
 | 01 | `01_python_automatizacion_secops.ipynb` | Rol de Python, librerías del proyecto, mapa de módulos |
 | 02 | `02_enriquecimiento_ioc.ipynb` | Código real de detección/simulación IOC + gráficos |
 | 03 | `03_pipeline_alerta_respuesta.ipynb` | Pipeline alerta → incidente → playbook + métricas |
+| 04 | `04_kali_linux_instalacion_uso.md` | **Guía completa:** instalar y usar Kali en VM (lab) |
+| 04 | `04_kali_linux_instalacion_uso.ipynb` | Cuaderno de clase: checklist + puente IOC |
 
-Ejecuta las celdas **en orden** (`Shift+Enter`).
+Ejecuta las celdas **en orden** (`Shift+Enter`). La formación 04 se sigue sobre todo en la **guía `.md`** (instalación en VirtualBox/VMware); el notebook solo acompaña el aula.
 
 ## Cómo se usa Python en SecOps Hub (resumen)
 
@@ -51,6 +53,11 @@ Ejecuta las celdas **en orden** (`Shift+Enter`).
 | BD / migraciones | modelos + Alembic | `flask-sqlalchemy`, `psycopg`, `alembic` |
 
 SecOps Hub **no sustituye** SIEM/EDR: Python orquesta la consola (ingesta → triaje → respuesta).
+
+## Formación 04 — Kali Linux
+
+Guía de instalación y uso en VM: [`04_kali_linux_instalacion_uso.md`](04_kali_linux_instalacion_uso.md).  
+Enfoque: laboratorio autorizado, terminal, nmap local, hashes/IOC y enlace con los notebooks 01–03.
 
 ## Relación con el código del repositorio
 
